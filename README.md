@@ -44,7 +44,7 @@ The MultiGWAS tool currently runs on Linux systems (tested on Ubuntu Linux 18.04
   - R 3.6 or higher. If not installed see https://cran.r-project.org/bin/linux/ubuntu/README.html or Open a Linux console and enter the following instructions for Ubuntu 18.04 (bionic):
 ```
     sudo apt install add-apt-key software-properties-common git
-    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB6517
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
     sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'16619E084DAB9
     sudo apt update
     sudo apt install r-base
