@@ -130,6 +130,8 @@ markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, 
 
 		bestThresholdScore = data [nBest,c("SCORE")]
 		bestThreshold      = 10^-bestThresholdScore
+		signThresholdScore = data [1, "THRESHOLD"]
+		signThreshold      = 10^-signThresholdScore
 
 		names          = unlist (strsplit (basename (filename), "[-|.]"))
 		mainTitle      = paste0 (names[2],"-", names [3])
@@ -155,15 +157,16 @@ markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, 
 		if (tool %in% ss$TOOL)
 			signThresholdScore = min (ss [ss$TOOL==tool,"SCORE"])
 		else
-			signThresholdScore = 0.95*ceiling (data[1, "SCORE"]) 
+			signThresholdScore = ceiling (data[1, "SCORE"]) 
 
 		bestSNPsTool     = unlist (select (filter (snpTables$best, TOOL==tool), "SNP"))
 		sharedSNPs       = intersect (commonBest, bestSNPsTool)
 		colorsBlueOrange = c("blue4", "orange3")
-		manhattan(gwasResults,col = c("gray10", "gray60"), highlight=sharedSNPs, annotatePval=bestThreshold, annotateTop=F,
+		ylims   = c (0, ceiling (signThresholdScore))
+		manhattan(gwasResults,col = c("orange", "midnightblue"), highlight=sharedSNPs, annotatePval=bestThreshold, annotateTop=F,
 				  suggestiveline=bestThresholdScore, genomewideline=signThresholdScore, main=mainTitle, logp=T, cex=2)
 
-		text (x=0, y=signThresholdScore*1.02, "Significative",, col="red", pos=4)
+		text (x=0, y=signThresholdScore*0.92, "               Significants",, col="red", pos=4)
 		text (x=0, y=bestThresholdScore*0.92, "Best",, col="blue", pos=4)
 
 		datax = calculateInflationFactor (-log10 (gwasResults$P))
@@ -229,12 +232,6 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 # Create a summary table of best and significative markers
 #------------------------------------------------------------------------
 markersSummaryTable <- function (inputDir, gwasModel, outputDir="out", nBest=5) {
-	# We read a gwaspoly generated map table with SNP info for chromosome and position
-	# map : SNP|CHROM|POS
-	map = read.table (file=paste0(inputDir,"/map.tbl"))
-	rownames (map) = map [,1]
-
-	#files =  list.files(inputDir, pattern=paste0("^(.*(",gwasModel,").*(scores)[^$]*)$"), full.names=T)
 	files =  list.files(inputDir, pattern=sprintf ("(^(tool).*(%s).*[.](csv))", gwasModel), full.names=T)
 	msgmsg ("Creating summary table...")
 	summaryTable = data.frame ()
@@ -260,7 +257,7 @@ markersSummaryTable <- function (inputDir, gwasModel, outputDir="out", nBest=5) 
 			tool    = "PLINK"
 			snps    = data$SNP
 			chrom   = data$CHR
-			pos	    = map [snps, 3]
+			pos	    = data$POS
 			flagNewData = T
 		}else if (grepl ("TASSEL", f)) {
 			tool    = "TASSEL"
@@ -271,8 +268,8 @@ markersSummaryTable <- function (inputDir, gwasModel, outputDir="out", nBest=5) 
 		}else if (grepl ("SHEsis", f)) {
 			tool    = "SHEsis"
 			snps    = data$SNP
-			chrom	= map [snps, 2]
-			pos	    = map [snps, 3]
+			chrom   = data$CHR
+			pos     = data$POS
 			flagNewData = T
 		}
 		if (flagNewData==T) {

@@ -19,8 +19,10 @@ runGwaspGwas <- function (params)
 	ploidy = 4
 
 	#snpModels=testModels = ("general")
-	snpModels  = c("general","additive","1-dom", "2-dom")
-	testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref")
+	#snpModels  = c("general","additive","1-dom", "2-dom")
+	snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
+	testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
+	#snpModels=testModels = c("diplo-general", "diplo-additive")
 
 	params = append (params, list (snpModels=snpModels, testModels=testModels))
 

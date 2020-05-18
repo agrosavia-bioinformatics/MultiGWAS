@@ -235,8 +235,6 @@ gwaspToShesisGenoPheno <- function (genotypeFile, phenotypeFile)
 	msgmsg ("    >>>> Writing shesis marker names...")
 	outFile = "out/filtered-shesis-markernames.tbl"
 	write.table (file=outFile, map[,1], quote=F,row.names=F,col.names=F, sep="\t")
-	outFile = "out/filtered-shesis-markernamespos.tbl"
-	write.table (file=outFile, map, quote=F,row.names=F,col.names=F, sep="\t")
 }
 
 #----------------------------------------------------------
@@ -352,7 +350,8 @@ numericToACGTFormatAlleles <- function (alleles, SNPs)
 ##-------------------------------------------------------------
 # Convert gwaspoly genotye from numeric tetra to numeric diplo
 #-------------------------------------------------------------
-numericTetraToNumericDiploGenotype <- function (genotypeFile) {
+numericTetraToNumericDiploGenotype <- function (genotypeFile) 
+{
 	toDiplo <- function (markers) {
 		id  = markers [1]
 		alleles <- as.numeric (markers [-1])
@@ -478,5 +477,6 @@ main <- function ()
 #----------------------------------------------------------
 #----------------------------------------------------------
 #main ()
+
 
 
