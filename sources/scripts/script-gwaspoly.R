@@ -13,16 +13,12 @@ runGwaspGwas <- function (params)
 	genotypeFile  = params$genotypeFile
 	phenotypeFile = params$phenotypeFile
 
-	if (LOAD_DATA & file.exists ("gwas.RData")) load (file="gwas.RData")
 
 	# Only for tetra ployds
 	ploidy = 4
 
-	#snpModels=testModels = ("general")
-	#snpModels  = c("general","additive","1-dom", "2-dom")
 	snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
 	testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
-	#snpModels=testModels = c("diplo-general", "diplo-additive")
 
 	params = append (params, list (snpModels=snpModels, testModels=testModels))
 
@@ -73,9 +69,12 @@ controlPopulationStratification <- function (data1, gwasModel, data2)
 #-------------------------------------------------------------
 # GWAS execution
 #-------------------------------------------------------------
-runGwaspoly <- function (data2, gwasModel, snpModels, data3) 
+runGwaspoly <- function (data2, params) 
 {
-	if (!is.null (data3)) { msgmsg(">>>> Loading GWASpoly..."); return (data3) }
+	gwasModel        = params$gwasModel
+	snpModels        = params$snpModels
+	correctionMethod = params$correctionMethod
+	signLevel        = params$significanceLevel
 
  	if (gwasModel %in% c("Naive","Kinship")) {
 		msgmsg(">>>> Without params")
@@ -85,38 +84,49 @@ runGwaspoly <- function (data2, gwasModel, snpModels, data3)
 		data3 = GWASpoly(data2, models=snpModels, traits=NULL, params=data2@params)
 	}
 	
-	return (data3)
+	# QTL Detection
+	data4 = set.threshold (data3, method=correctionMethod,level=signLevel,n.core=4)
+
+	return (data4)
 }
 
 #-------------------------------------------------------------
 # Plot results
 #-------------------------------------------------------------
-showResults <- function (data3, testModels, trait, gwasModel, correctionMethod, phenotypeFile, ploidy) 
+showResults <- function (data3, testModels, trait, gwasModel, phenotypeFile, ploidy) 
 {
 	msgmsg ();msgmsg("Writing GWASpoly results...")
-	outputDir  = "out/"
-	outFile    = paste0 ("out/tool-GWASpoly-scores-", gwasModel)
-	scoresFile = paste0 (outFile,".csv")
-	plotFile   = paste0 ("out/out-GWASpoly-", gwasModel, "-plots.pdf") 
+	#outFile       = paste0 ("out/tool-GWASpoly-scores-", gwasModel)
+	#scoresFile    = paste0 (outFile,".csv")
+	#scoresFileAll = paste0 (outFile,"-all.csv")
+	plotFile      = paste0 ("out/out-GWASpoly-", gwasModel, "-plots.pdf") 
 
-	msgmsg(">>>> Plotting results to ", outputDir, "...")
-	#phenoName = strsplit (phenotypeFile, split=".scores")[[1]][1]
-
-	n = length (testModels)
-	
 	# QTL Detection
-	data5 = set.threshold (data3, method=correctionMethod,level=0.05,n.core=4)
+	#data5 = set.threshold (data3, method=correctionMethod,level=0.05,n.core=4)
 
-	# Plots
-	#plotName = sprintf("%s/%s-%s-plots.pdf", outputDir, outFile, gwasModel)
-	#pdf (paste0 (outputDir, "/out-multiGWAS-manhattanQQ-plots.pdf"), width=11, height=15)
+	# Plot results	
+	plotMahattanQQ (plotFile, testModels, data3, trait, data3, gwasModel, ploidy) 
+
+	#msgmsg(">>>> Writing QTLs to file: ", scoresFile, "...")
+	#write.GWASpoly (data5, trait, paste0(scoresFile,".qtls"), "scores", delim="\t")
+
+	#scoresTableAll  = getQTLGWASpoly (data3, gwasModel, ploidy)
+	#write.table (file=scoresFileAll, scoresTableAll, quote=F, sep="\t", row.names=F)
+
+	#scoresTableSorted = scoresTableAll [order (scoresTableAll$GC, scoresTableAll$DIFF, decreasing=T),]
+	#scoresTable       = scoresTableSorted [!duplicated (scoresTableSorted$Marker, fromLast=F),]
+	#write.table (file=scoresFile, scoresTable, quote=F, sep="\t", row.names=F)
+}
+
+#-------------------------------------------------------------
+# Manhattan and QQ plots
+#-------------------------------------------------------------
+plotMahattanQQ <- function (plotFile, testModels, data5, trait, data3, gwasModel, ploidy) {
+	n = length (testModels)
+
 	pdf (file=plotFile, width=11, height=15)
-	# QQ plot 
-	#op <- par(mfrow = c(2,n), oma=c(0,0,3,0), mgp= c(2.2,1,0))
-	#op <- par(mfrow = c(n,2), mar=c(3.5,3.5,3,1), oma=c(0,0,0,0), mgp = c(2.2,1,0)) #MultiGWAS tools
-	#op <- par(mfrow = c(n,2), oma=c(0,0,3,0), mgp= c(2.2,1,0))
 	op <- par(mfrow = c(n,2), mar=c(3.5,3.5,2,1), oma=c(0,0,0,0), mgp = c(2.2,1,0)) #MultiGWAS tools
-	for (i in 1:length(testModels)) {
+	for (i in 1:n) {
 		manhattan.plot (data5, trait=trait, model=testModels [i])
 		qqPlot(data3,trait=trait, model=testModels[i], cex=0.3)
 	}
@@ -125,70 +135,12 @@ showResults <- function (data3, testModels, trait, gwasModel, correctionMethod, 
 	mtext(plotTitle, outer=T,  cex=1.5,  line=0)
 	par(op)
 	dev.off()
-
-	msgmsg(">>>> Writing QTLs to file: ", scoresFile, "...")
-	#write.GWASpoly (data5, trait, paste0(scoresFile,".qtls"), "scores", delim="\t")
-
-	outQTLsAllSNPs  = getQTL (data5, gwasModel, ploidy)
-	write.table (file=scoresFile, outQTLsAllSNPs, quote=F, sep="\t", row.names=F)
-
 }
-
-
-
-#-------------------------------------------------------------
-# Plot results
-#-------------------------------------------------------------
-old_showResults <- function (data3, testModels, trait, gwasModel, correctionMethod, phenotypeFile, ploidy) 
-{
-	msgmsg ();msgmsg("Writing GWASpoly results...")
-	outputDir  = "out/"
-	outFile    = paste0 ("out/tool-GWASpoly-scores-", gwasModel)
-	scoresFile = paste0 (outFile,".csv")
-	plotFile   = paste0 ("out/out-GWASpoly-", gwasModel, "-plots.pdf") 
-
-	msgmsg(">>>> Plotting results to ", outputDir, "...")
-	#phenoName = strsplit (phenotypeFile, split=".scores")[[1]][1]
-
-	n = length (testModels)
-	
-	# QTL Detection
-	data5 = set.threshold (data3, method=correctionMethod,level=0.05,n.core=4)
-
-	# Plots
-	#plotName = sprintf("%s/%s-%s-plots.pdf", outputDir, outFile, gwasModel)
-	pdf (file=plotFile, width=11, height=7)
-	# QQ plot 
-	op <- par(mfrow = c(2,n), oma=c(0,0,3,0), mgp= c(2.2,1,0))
-	for (i in 1:length(testModels)) {
-		#par (cex.main=0.5, cex.lab=0.5, cex.axis=0.5, ann=T)
-		qqPlot(data3,trait=trait, model=testModels[i], cex=0.3)
-	}
-
-	# Manhattan plot 
-	for (i in 1:length(testModels)) {
-		#par (cex=1.5)
-		#manhattan.plot (y.max=20,data5, trait=trait, model=testModels [i])
-		manhattan.plot (data5, trait=trait, model=testModels [i])
-	}
-	plotTitle = sprintf ("%s gwas %s-ploidy for %s trait", gwasModel, ploidy, trait)  
-	mtext(plotTitle, outer=T,  cex=1.5,  line=0)
-	par(op)
-	dev.off()
-
-	msgmsg(">>>> Writing QTLs to file: ", scoresFile, "...")
-	#write.GWASpoly (data5, trait, paste0(scoresFile,".qtls"), "scores", delim="\t")
-
-	outQTLsAllSNPs  = getQTL (data5, gwasModel, ploidy)
-	write.table (file=scoresFile, outQTLsAllSNPs, quote=F, sep="\t", row.names=F)
-
-}
-
 
 #-------------------------------------------------------------
 # Extracts significant QTL
 #-------------------------------------------------------------
-getQTL <- function(data,gwasModel, ploidy, traits=NULL,models=NULL) 
+getQTLGWASpoly <- function(data,gwasModel, ploidy, traits=NULL,models=NULL) 
 {
 	stopifnot(inherits(data,"GWASpoly.thresh"))
 
@@ -216,11 +168,8 @@ getQTL <- function(data,gwasModel, ploidy, traits=NULL,models=NULL)
 		thresholds=round(rep(data@threshold[traits[1],models[j]],n.ix),2)
 		diffs = (scores - thresholds)
 		pvalues = 10^(-scores)
-		df = data.frame(Ploidy=rep (ploidy, n.ix),
-						Type=rep (gwasModel, n.ix),
-						data@map[ix,],
-						GC=gc,
-						Model=rep(models[j],n.ix),
+		df = data.frame(Ploidy=rep (ploidy, n.ix), Type=rep (gwasModel, n.ix),
+						data@map[ix,], GC=gc, MODEL=rep(models[j],n.ix),
 						P=pvalues,SCORE=scores, THRESHOLD=thresholds, DIFF=diffs,
 						Effect=round(data@effects[[traits[1]]][ix,models[j]],2))
 						#stringsAsFactors=F,check.names=F)

@@ -4,6 +4,7 @@
 # AUTHOR: Luis Garreta (lgarreta@agrosavia.co) 
 # DATE  : 12/feb/2020
 # LOGS  :   
+	# r1.3: Added column gene action model to tables of results by tool:wq
 	# r1.2: Separate SHEsis/Plink Kinship. Reduced code (runGWAStools, ped, bed)
 	# r0.99: Fixed Tassel Pipeline. Improved messages and warnings"
 	# r0.982: Added local libs inside code. Dynamic markdown in pdf and html. Trait in report
@@ -85,13 +86,13 @@ main <- function (args)
 	moveOutFiles (config$outputDir, config$reportDir)
 
 	# Call to rmarkdown report
-	createReport (config)
+	createMarkdownReport (config)
 }
 
 #-------------------------------------------------------------
 # Create Rmkardown report
 #-------------------------------------------------------------
-createReport  <- function (config) {
+createMarkdownReport  <- function (config) {
 	msg ("Creating html rmarkdown report...")
 	outputFile = paste0 (config$workingDir, "/multiGWAS-report.html") 
 	title      = paste0 ("MultiGWAS report for ", config$gwasModel, " GWAS model")
@@ -131,7 +132,6 @@ runGWASTools <- function (config) {
 	msg ("Preparing to execute in parallel the four GWAS tools (GWASpoly, SHEsis, PLINK, and TASSEL)...")
 	msgmsg ("Running GWASpoly...");msgmsg ("Running SHEsis...");msgmsg ("Running PLINK...");msgmsg ("Running TASSEL...")
 	mclapply (c("Gwasp", "Plink", "SHEsis", "Tassel"), runOneTool, config, mc.cores=4, mc.silent=T)
-
 }
 
 #-------------------------------------------------------------
@@ -196,6 +196,9 @@ moveOutFiles <- function (outputDir, reportDir)
 #-------------------------------------------------------------
 runGwaspolyGwas <- function (params) 
 {
+	outFile       = paste0 ("out/tool-GWASpoly-scores-", params$gwasModel)
+	scoresFile    = paste0 (outFile,".csv")
+
 	msgmsg("Running GWASpoly...")
 
 	genotypeFile  = params$genotypeFile
@@ -204,12 +207,8 @@ runGwaspolyGwas <- function (params)
 	# Only for tetra ployds
 	ploidy = 4
 
-	#snpModels=testModels = ("general")
 	snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
 	testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref", "diplo-general", "diplo-additive")
-	#snpModels  = c("general","additive","1-dom", "2-dom")
-	#testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref")
-	#snpModels=testModels = c("diplo-general", "diplo-additive")
 
 	params = append (params, list (snpModels=snpModels, testModels=testModels))
 
@@ -220,26 +219,44 @@ runGwaspolyGwas <- function (params)
 	data2 = controlPopulationStratification (data1, params$gwasModel, data2)
 
 	# GWAS execution
-	data3 <- runGwaspoly (data2, params$gwasModel, params$snpModels, data3)
+	data3 <- runGwaspoly (data2, params) 
+						  #params$gwasModel, params$snpModels,params$correctionMethod )
+
+	# Get SNP associations
+	scoresTable  = getQTLGWASpoly (data3, params$gwasModel, ploidy)
+	write.table (file=scoresFile, scoresTable, quote=F, sep="\t", row.names=F)
+
 	msgmsg ("    >>>> GWASpoly showResults...")
 	showResults (data3, params$testModels, params$trait, params$gwasModel, 
-				 params$correctionMethod, params$phenotypeFile, ploidy)
-	msgmsg ("    >>>> ...GWASpoly showResults")
+				 params$phenotypeFile, ploidy)
 }
 
 #-------------------------------------------------------------
 # Plink tool
+# Plink also has gene action models: ADD, DOM, ADD+DOM (GNR)
+# https://zzz.bwh.harvard.edu/plink/anal.shtml:
+# The TEST column is by default ADD meaning the additive effects of allele dosage. Adding the option
+#     --genotypic
+# will generate file which will have two extra tests per SNP, corresponding to two extra rows: 
+# DOMDEV and GENO_2DF which represent a separate test of the dominance component or a 2 df joint 
+# test of both additive and dominance (i.e. corresponding the the general, genotypic model in the
+# --model command). Unlike the dominance model is the --model, DOMDEV refers to a variable coded 
+# 0,1,0 for the three genotypes AA,Aa,aa, i.e. representing the dominance deviation from additivity, 
+# rather specifying that a particular allele is dominant or recessive. That is, the DOMDEV term is 
+# fitted jointly with the ADD term in a single model.
 #-------------------------------------------------------------
 runPlinkGwas <- function (params) 
 {
 	msgmsg ("Running Plink GWAS...")
+	#model = params$gwasModel
 	model = params$gwasModel
 
-	inGeno   = "out/filtered-plink-genotype"       # Only prefix for Plink
-	inPheno  = "out/filtered-plink-phenotype.tbl"  
-	outFile  = paste0 ("out/tool-PLINK-scores-", model)
-	outScores = paste0 (outFile, ".csv")
-	outPlink = paste0(outFile,".TRAIT.assoc.linear.adjusted")
+	inGeno           = "out/filtered-plink-genotype"       # Only prefix for Plink
+	inPheno          = "out/filtered-plink-phenotype.tbl"  
+	outFile          = paste0 ("out/tool-PLINK-scores-", model)
+	outScores        = paste0 (outFile, ".csv")
+	outPlinkAdjusted = paste0(outFile,".TRAIT.assoc.linear.adjusted")
+	outPlinkLinear   = paste0(outFile,".TRAIT.assoc.linear")
 
 	if (model=="Naive") { 
 		cmm=sprintf ("%s/sources/scripts/script-plink-NaiveModel.sh %s %s %s", HOME,inGeno, inPheno, outFile)
@@ -260,29 +277,33 @@ runPlinkGwas <- function (params)
 		quit (paste ("Type of GWAS:\"", model, "\", not supported"))
 
 	# Data preprocessing 
-	results      <- read.table (file=outPlink,  header=T) 
-	pValues      <- results$UNADJ
+	resultsAdjusted      <- read.table (file=outPlinkAdjusted,  header=T) 
+	pValues      <- resultsAdjusted$UNADJ
 
 	# Read from the secondary output file from PLINK
-	outPlinkLinear = paste0(outFile,".TRAIT.assoc.linear")
-	resultsLinear  = read.table (file=outPlinkLinear,  header=T) 
-	resultsLinear  = resultsLinear [!duplicated (resultsLinear$SNP),]
-	resultsLinear  = resultsLinear [match (results$SNP, resultsLinear$SNP),]
-	rownames (resultsLinear) = resultsLinear$SNP
-	chromosomes =  resultsLinear [results$SNP, "CHR"]
-	positions   =  resultsLinear [results$SNP, "BP"]
+	resultsLinearDups   = read.table (file=outPlinkLinear,  header=T) 
+	resultsLinearNoDups = resultsLinearDups [!duplicated (resultsLinearDups$SNP),]
+	resultsLinear       = resultsLinearNoDups [match (resultsAdjusted$SNP, resultsLinearNoDups$SNP),]
+
+	# Get data from PLINK files
+	chromosomes =  resultsLinear$CHR
+	positions   =  resultsLinear$BP
 
 	scores      = -log10 (pValues)
+	gcs         =  calculateInflationFactor (scores)
 	m           = length (pValues)
 	if (params$correctionMethod=="FDR") {
 		threshold    <- calculateThreshold (level=SIGNIFICANCE_LEVEL, scores=scores, method="FDR")
 	}else if (params$correctionMethod=="Bonferroni") {
 		# Adjust scores to number of NMISS	(Number of genotype calls considered)
-		nMiss     <- resultsLinear [results$SNP, "NMISS"]
+		nMiss     <- resultsLinear [resultsAdjusted$SNP, "NMISS"]
 		threshold = -log10 (SIGNIFICANCE_LEVEL/m)
 	}
 
-	resultsAll    <- cbind (results, CHR=chromosomes, POS=positions, P=pValues, SCORE=round (scores,6), THRESHOLD=round (threshold,6), DIFF=round (scores-threshold, 6))
+	model = "additive"  # But Plink offers other tow gene action models: "ADD", "DOM", "GNR" (ADD+COM)
+	resultsAll    <- cbind (MODEL=model, GC=gcs$delta, CHR=chromosomes, POS=positions, P=pValues, 
+							SCORE=round (scores,6), THRESHOLD=round (threshold,6), 
+							DIFF=round (scores-threshold, 6), resultsAdjusted)
 	resultsAll    <- resultsAll [order (resultsAll$DIFF, decreasing=T),]
 	write.table (file=outScores, resultsAll, row.names=F, quote=F, sep="\t")
 }
@@ -329,7 +350,8 @@ runShesisGwas <- function (params)
 
 	# Format data to table with scores and threshold
 	results  = read.table (file=scoresFile, header=T, sep="\t")
-	pValues  = results[,"P.value"]
+	#pValues  = results[,"P.value"]
+	pValues  = results[,"FDR_BH"]
 	m        = length (pValues)
 	#pValues  = p.adjust (pValues, meth="BY", m)
 	scores   = -log10 (pValues)
@@ -339,13 +361,16 @@ runShesisGwas <- function (params)
 		threshold = -log10 (SIGNIFICANCE_LEVEL/m) 
 	}
 
+	# Set Columns
 	map <- read.table (file="out/map.tbl", sep="\t")
 	rownames (map) = map [,1]
 	SNP <- as.character (results$SNP)
 	CHR <- map [SNP, 2]
 	POS <- map [SNP, 3]
+	GC  = calculateInflationFactor (-log10(pValues))
 
-	resultsAll <- data.frame (SNP, CHR, POS, P=pValues, SCORE=round (scores,6), THRESHOLD=round (threshold,6), DIFF=round (scores-threshold, 6), results)
+	model = "general"
+	resultsAll <- data.frame (MODEL=model, GC=GC$delta, SNP, CHR, POS, P=pValues, SCORE=round (scores,6), THRESHOLD=round (threshold,6), DIFF=round (scores-threshold, 6), results)
 	resultsAll <- resultsAll [order (resultsAll$DIFF, decreasing=T),]
 	write.table (file=scoresFile, resultsAll, row.names=F, quote=F, sep="\t")
 }
@@ -359,11 +384,10 @@ runTasselGwas <- function (params)
 	model = params$gwasModel
 
 	# Parameters for the scripts
-	inGenoVCF  = "out/filtered-tassel-genotype.vcf"
-	inPhenoTBL = "out/filtered-tassel-phenotype.tbl"
-	outFile    = paste0 ("out/tool-TASSEL-scores-", model)
-	scoresFile = paste0 (outFile, ".csv")
-	scoresFileAll = paste0 (outFile, "-all.tbl")
+	inGenoVCF     = "out/filtered-tassel-genotype.vcf"
+	inPhenoTBL    = "out/filtered-tassel-phenotype.tbl"
+	outFile       = paste0 ("out/tool-TASSEL-scores-", model)
+	scoresFile    = paste0 (outFile, ".csv")
 
 	if (model=="Naive") {
 		cmm=sprintf ("%s/sources/scripts/script-tassel-NaiveModel.sh %s %s %s", HOME,inGenoVCF, inPhenoTBL, outFile)
@@ -373,16 +397,15 @@ runTasselGwas <- function (params)
 		cmm=sprintf ("%s/sources/scripts/script-tassel-FullModel.sh %s %s %s", HOME, inGenoVCF, inPhenoTBL, outFile)
 		runCommand (cmm, "log-tassel.log")
 		tasselFile   = list.files("out/", pattern=sprintf("^(.*(%s).*(stats).*(txt)[^$]*)$",model), full.names=T)
-	}else 
-		quit (paste ("Type of GWAS:\"", model, "\", not implemented"))
+	}
 	
 	# Rename output file
 	msgmsg ("Tassel output file: ", tasselFile)
 
-	# Create tree tables for p, pAdd, and pDom
+	# Create table by group of p-values: p, pAdd, and pDom
 	results      <- read.table (file=tasselFile, header=T, sep="\t")
+	# Returns a new table according to "varP" values
 	createTableTassel  <- function (results, model, varP) {
-		print (varP)
 		allP    = results [,varP]
 		results = results [complete.cases (allP),]
 		P       = results [,varP]
@@ -400,24 +423,20 @@ runTasselGwas <- function (params)
 			#threshold    <- calculateThreshold (level=SIGNIFICANCE_LEVEL, scores=scores, method="Bonferroni")
 
 		# Compose the results table
-		pTable  <-  cbind (Model=model, results [, c("Marker", "Chr", "Pos")], P=P, 
+		GC = calculateInflationFactor (-log10(P))
+		pTable  <-  cbind (MODEL=model, GC=GC$delta, results [, c("Marker", "Chr", "Pos")], P=P, 
 						   SCORE=scores, THRESHOLD=threshold, DIFF=(scores-threshold))
 		pTable  <- pTable [order (scores, decreasing=T),]    
 		return (pTable)
 	}
 	# Create tables for each model
-	addTable <- createTableTassel (results, "Add", "add_p")
-	gnrTable <- createTableTassel (results, "Gnr", "p")
-	domTable <- createTableTassel (results, "Dom", "dom_p")
+	addTable <- createTableTassel (results, "additive", "add_p")
+	gnrTable <- createTableTassel (results, "general", "p")
+	domTable <- createTableTassel (results, "dominant", "dom_p")
 
 	# Join the tables, order by DIFF, and write it
-	scoresTable <- rbind (addTable, domTable, gnrTable)
-	write.table (file=scoresFileAll, scoresTable, quote=F, sep="\t", row.names=F)
-	#scoresTable <- gnrTable
-
-	scoresTable = scoresTable [!duplicated (scoresTable$Marker, fromLast=F),]
-	scoresTable <- scoresTable [order (scoresTable$DIFF, decreasing=T),]
-	write.table (file=scoresFile, scoresTable, quote=F, sep="\t", row.names=F)
+	scoresTableAll <- rbind (addTable, domTable, gnrTable)
+	write.table (file=scoresFile, scoresTableAll, quote=F, sep="\t", row.names=F)
 }
 
 #-------------------------------------------------------------
@@ -829,7 +848,8 @@ msgmsg <- function (...)
 # Fast head, for debug only
 #----------------------------------------------------------
 hd <- function (data, m=10,n=10) {
-	msgmsg (deparse (substitute (data)),":")
+	#msgmsg (deparse (substitute (data)),":")
+	msgmsg (deparse (substitute (data)),": ", dim (data))
 	if (is.null (dim (data)))
 		print (data [1:10])
 	else if (ncol (data) < 10) 

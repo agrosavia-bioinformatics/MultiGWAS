@@ -7,5 +7,5 @@ GENOPLINK=$1
 PHENOTBL=$2
 OUTFILE=$3
 
-plink --file $GENOPLINK --pca 10 --out out-PCs
+plink --file $GENOPLINK --pca 5 --out out-PCs
 plink --file $GENOPLINK --linear --adjust --pheno $PHENOTBL --all-pheno --allow-no-sex --covar out-PCs.eigenvec --out $OUTFILE

@@ -39,7 +39,7 @@ public class ViewInputs extends javax.swing.JPanel {
         fieldSignificance.setText("0.05");
         fieldCorrection.setSelectedIndex(0);
         fieldModel.setSelectedIndex(0);
-        fieldSNPs.setSelectedIndex(4);
+        fieldSNPs.setSelectedIndex(9);
         fieldFiltering.setSelectedIndex(0);
         fieldFilterMAF.setText("0.01");
         fieldFilterMIND.setText("0.1");
@@ -193,6 +193,11 @@ public class ViewInputs extends javax.swing.JPanel {
         panelButtons.add(buttonOpen);
 
         buttonSave.setText("Save...");
+        buttonSave.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                buttonSaveActionPerformed(evt);
+            }
+        });
         panelButtons.add(buttonSave);
 
         add(panelButtons, java.awt.BorderLayout.SOUTH);
@@ -331,7 +336,7 @@ public class ViewInputs extends javax.swing.JPanel {
         jLabel5.setText("Number of Best SNPs:");
 
         fieldSNPs.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" }));
-        fieldSNPs.setSelectedIndex(7);
+        fieldSNPs.setSelectedIndex(9);
 
         jLabel6.setText("Filtering:");
 
@@ -590,6 +595,11 @@ public class ViewInputs extends javax.swing.JPanel {
     private void fieldFilterHWEActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldFilterHWEActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_fieldFilterHWEActionPerformed
+
+    private void buttonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonSaveActionPerformed
+        controller.browseFile("/home/lg/aplicaciones/MultiGWAS/examples/Test01/out-Test01/multiGWAS-report.html",
+                "/home/lg/aplicaciones/MultiGWAS/examples/Test01/out-Test01/report");
+    }//GEN-LAST:event_buttonSaveActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

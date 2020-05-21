@@ -43,6 +43,7 @@ public class ViewFiles extends JPanel {
         });
     }
     public void changeDir (String dir) {
+        System.out.println ("Changing to dir: " + dir);
         fileChooser.setCurrentDirectory(new File (dir));
     }
 }

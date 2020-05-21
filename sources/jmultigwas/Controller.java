@@ -1,8 +1,12 @@
 package jmultigwas;
 
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -32,7 +36,7 @@ class Controller extends JFrame {
         viewToolBar = new ViewToolBar(this);
         setTitle("JMultiGWAS Tool for GWAS");
     }
-    
+
     public void init() {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(900, 500);
@@ -52,10 +56,10 @@ class Controller extends JFrame {
         viewTabs = new JTabbedPane();
         Dimension size = this.getSize();
 
-        tabInputs  = new ViewInputs (this, model);
+        tabInputs = new ViewInputs(this, model);
         tabOutputs = new ViewOutputs(size);
         tabResults = new ViewResults(size);
-        tabFiles   = new ViewFiles(this);
+        tabFiles = new ViewFiles(this);
         tabOutputs.init();
 
         viewTabs.addTab("Inputs", tabInputs);
@@ -65,30 +69,60 @@ class Controller extends JFrame {
 
         //onNewProject();
     }
-    
-    public void onDefaultButton () {
-        tabInputs.setDefaults ();
+
+    public void onDefaultButton() {
+        tabInputs.setDefaults();
     }
-    public void onRunApplication () {
+
+    public void onRunApplication() {
         viewTabs.setSelectedIndex(1);
     }
-    
-    public void onCancelButton () {
+
+    public void onCancelButton() {
         viewTabs.setSelectedComponent(tabInputs);
     }
 
     public void onEndOfExecution() {
-        String workingDir   = tabInputs.getOutputDir();
-        String dirName      = Paths.get (workingDir).getFileName ().toString ();
-        String outputDir    = workingDir + File.separator + "out-" + dirName;
-        String reportDir    = outputDir + File.separator + "report";
+        String workingDir = tabInputs.getOutputDir();
+        String dirName = Paths.get(workingDir).getFileName().toString();
+        String outputDir = workingDir + File.separator + "out-" + dirName;
+        String reportDir = outputDir + File.separator + "report";
         String htmlFilename = outputDir + File.separator + "multiGWAS-report.html";
-       
-        tabResults.showResults(htmlFilename);
+
+        browseFile(htmlFilename, reportDir);
+    }
+
+    public void browseFile(String url, String reportDir) {
+        String myOS = System.getProperty("os.name").toLowerCase();
+        OUT("(Your operating system is: " + myOS + ")\n");
+
+        try {
+            if (myOS.contains("win") && Desktop.isDesktopSupported()) { // Probably Windows
+                OUT(" -- Going with Desktop.browse ...");
+                Desktop desktop = Desktop.getDesktop();
+                desktop.browse(new URI(url));
+            } else { // Definitely Non-windows
+                Runtime runtime = Runtime.getRuntime();
+                if (myOS.contains("mac")) { // Apples
+                    OUT(" -- Going on Apple with 'open'...");
+                    runtime.exec("open " + url);
+                } else if (myOS.contains("nix") || myOS.contains("nux")) { // Linux flavours 
+                    OUT(" -- Going on Linux with 'xdg-open'...");
+                    runtime.exec("xdg-open " + url);
+                } else {
+                    OUT("I was unable/unwilling to launch a browser in your OS :( #SadFace");
+                }
+            }
+            OUT("\nThings have finished.\nI hope you're OK.");
+        } catch (IOException | URISyntaxException eek) {
+            OUT("**Stuff wrongly: " + eek.getMessage());
+        }
+
+        tabResults.showResults(url);
         viewTabs.setSelectedIndex(2);
-        System.out.println (">>> report dir: " + reportDir);
+        OUT(">>> Report file: " + url);
         tabFiles.changeDir(reportDir);
-        //tabResults = new ViewResults("/tmp/multiGWAS-report.html");
+        //tabResults = new ViewResults("/tmp/multiGWAS-report.html");  
     }
 
     public void onNewButton() {
@@ -99,6 +133,17 @@ class Controller extends JFrame {
 
     public void sendToOutputs(char c) {
         tabOutputs.append(c);
+    }
+
+    public void sendToOutputs(String s) {
+        int n = s.length();
+        for (int i = 0; i < n; i++) {
+            tabOutputs.append(s.charAt(i));
+        }
+    }
+
+    private void OUT(String string) {
+        System.out.println(string);
     }
 
 }

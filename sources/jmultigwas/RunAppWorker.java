@@ -60,6 +60,9 @@ public class RunAppWorker extends SwingWorker<Void, String> {
             System.out.println("End of execution");
             int exitVal = process.waitFor();
             if (exitVal == 0) {
+                controller.sendToOutputs("End of execution   ");
+                
+                controller.sendToOutputs("Success!");
                 System.out.println("Success!");
             } else {
                 System.out.println("Abnormal!");

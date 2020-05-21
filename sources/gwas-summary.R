@@ -59,8 +59,8 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, gwasModel, out
 	msgmsg ("Writing table input config parameters...")
 	writeConfigurationParameters (inputDir, outputDir)
 
-	msgmsg ("Writing table with summary results...")
-	snpTables = markersSummaryTable (inputDir, gwasModel, outputDir,  nBest)
+	msgmsg ("Creating table with summary results...")
+	snpTables = markersSummaryTable (inputDir, gwasModel, nBest)
 
 	msgmsg ("Writing table with ", nBest, " best ranked SNPs Table...")
 	outName = paste0(outputDir, "/out-multiGWAS-scoresTable-best.scores")
@@ -80,10 +80,10 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, gwasModel, out
 
 	msgmsg ("Writing Manhattan and QQ plots...")
 	png (paste0 (outputDir, "/out-multiGWAS-manhattanQQ-plots.png"), width=11, height=15, units="in", res=120)
-	op=markersManhattanPlots (inputDir, gwasModel, commonBest, commonSign, snpTables, outputDir)
+	op=markersManhattanPlots (inputDir, gwasModel, commonBest, commonSign, snpTables, outputDir, nBest)
 	dev.off()
 	pdf (paste0 (outputDir, "/out-multiGWAS-manhattanQQ-plots.pdf"), width=11, height=15)
-	op=markersManhattanPlots (inputDir, gwasModel, commonBest, commonSign, snpTables, outputDir)
+	op=markersManhattanPlots (inputDir, gwasModel, commonBest, commonSign, snpTables, outputDir, nBest)
 	par (op)
 	dev.off()
 
@@ -120,7 +120,7 @@ calculateInflationFactor <- function (scores)
 
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
-markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, snpTables, outputDir, nBest=8) {
+markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, snpTables, outputDir, nBest) {
 	#files =  list.files(inputDir, pattern=paste0("^(.*(",gwasModel,").*(scores)[^$]*)$"), full.names=T)
 	files =  list.files(inputDir, pattern=sprintf ("(^(tool).*(%s).*[.](csv))", gwasModel), full.names=T)
 	#pdf (paste0 (outputDir, "/out-summary.manhattan-qq-plots.pdf"), width=11, height=7)
@@ -138,7 +138,7 @@ markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, 
 
 		if (grepl ("GWASpoly", filename)) {
 			tool = "GWASpoly"
-			data = data [data[,"Model"] %in% "additive",]
+			data = selectDataFromBestModel (data, tool)
 			gwasResults = data.frame (SNP=data$Marker, CHR=data$Chrom, BP=data$Position, P=10^-data$SCORE)
 		}
 		else if (grepl ("SHEsis", filename)) {
@@ -151,6 +151,7 @@ markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, 
 		}
 		else if (grepl ("TASSEL", filename)) {
 			tool = "TASSEL"
+			data = selectDataFromBestModel (data, nBest)
 			gwasResults = data.frame (SNP=data$Marker, CHR=data$Chr, BP=data$Pos, P=10^-data$SCORE)
 		}
 		ss = snpTables$significatives
@@ -179,6 +180,22 @@ markersManhattanPlots <- function (inputDir, gwasModel, commonBest, commonSign, 
 	return (op)
 }
 
+#------------------------------------------------------------------------
+# Return the data of the best model according to
+# number of shared SNPs and DIFF (threshold - score)
+#------------------------------------------------------------------------
+selectDataFromBestModel <- function(data, nBest) 
+{
+	dataShared = sortBySharedSNPsMultipleModels (data, nBest)
+	dataCount = add_count (dataShared, MODEL, sort=T)
+
+	model = as.character (dataCount$MODEL[1])
+
+	dataModel = data [data[,"MODEL"] %in% model,]
+	dataModel = dataModel [order (-dataModel$DIFF),]
+
+	return (dataModel)
+}
 #------------------------------------------------------------------------
 # Create Venn diagram of common markers using info from summary table
 #------------------------------------------------------------------------
@@ -231,7 +248,7 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 #------------------------------------------------------------------------
 # Create a summary table of best and significative markers
 #------------------------------------------------------------------------
-markersSummaryTable <- function (inputDir, gwasModel, outputDir="out", nBest=5) {
+markersSummaryTable <- function (inputDir, gwasModel, nBest) {
 	files =  list.files(inputDir, pattern=sprintf ("(^(tool).*(%s).*[.](csv))", gwasModel), full.names=T)
 	msgmsg ("Creating summary table...")
 	summaryTable = data.frame ()
@@ -241,42 +258,50 @@ markersSummaryTable <- function (inputDir, gwasModel, outputDir="out", nBest=5) 
 		msgmsg ("Processing output tool file: ", f)
 		data <- read.table (file=f, header=T)
 		#if (nrow(data)>nBest) data=data [1:nBest,] 
-		pVal	<- data$P
-		pscores <- data$SCORE
-		tscores <- data$THRESHOLD
-		signf   = pscores >= tscores
 
 		flagNewData = F
 		if (grepl("GWASpoly", f)) {
 			tool    = "GWASpoly"
-			snps    <- data$Marker
-			chrom   <- data$Chrom
-			pos	    <- data$Position
+			data    = selectDataFromBestModel (data, nBest )
+			chrom   = data$Chrom
+			pos	    = data$Position
+			snps    = data$Marker
 			flagNewData = T
 		}else if (grepl ("PLINK", f)) {
 			tool    = "PLINK"
-			snps    = data$SNP
 			chrom   = data$CHR
 			pos	    = data$POS
+			snps    = data$SNP
 			flagNewData = T
 		}else if (grepl ("TASSEL", f)) {
 			tool    = "TASSEL"
-			snps    = data$Marker
+			data    = selectDataFromBestModel (data, nBest)
 			chrom   = data$Chr
 			pos		= data$Pos
+			snps    = data$Marker
 			flagNewData = T
 		}else if (grepl ("SHEsis", f)) {
 			tool    = "SHEsis"
-			snps    = data$SNP
 			chrom   = data$CHR
 			pos     = data$POS
+			snps    = data$SNP
 			flagNewData = T
 		}
+
+		# Set values with general column names
+		model   = data$MODEL
+		gcs     = data$GC
+		pVal	= data$P
+		pscores = data$SCORE
+		tscores = data$THRESHOLD
+		signf   = pscores >= tscores
+
 		if (flagNewData==T) {
 			message (paste(length(tool), length(snps), length(chrom), length(pos), length(flagNewData)))
-			dfm = data.frame (TOOL=tool, MODEL=gwasModel, CHROM=chrom, POSITION=pos, SNP=snps, 
+			dfm = data.frame (TOOL=tool, MODEL=model, GC=gcs, SNP=snps, CHROM=chrom, POSITION=pos, 
 							  PVALUE = round (pVal,6), SCORE=round (pscores, 4), THRESHOLD=round (tscores,4), SIGNIFICANCE=signf )
-			dfm = dfm %>% distinct (SNP, .keep_all=T)
+			#dfm = dfm %>% distinct (SNP, .keep_all=T)
+			dfm = dfm [!duplicated (dfm$SNP),]
 			if (nrow(dfm)>nBest) dfm=dfm [1:nBest,] 
 			summaryTable <- rbind (summaryTable, dfm)
 			flagNewData = F
@@ -289,12 +314,56 @@ markersSummaryTable <- function (inputDir, gwasModel, outputDir="out", nBest=5) 
 	return (list (best=summaryTable, significatives=summarySignificatives))
 }
 
+#-----------------------------------------------------------
+# Select best N SNPs from multiple action models (for GWASpoly and TASSEL)
+# PLINK also can produce info of more action models using options
+#-----------------------------------------------------------
+sortBySharedSNPsMultipleModels <- function (scoresTable, N) {
+	# Read
+	#dr = read.table (file=filename, header=T, sep="\t"); 
+	#hd (dt,n=13)
+
+	# Select main columns
+	#dr = dt [,c("Marker","GC","MODEL","SCORE", "THRESHOLD", "DIFF")]; 
+	#hd (dr,n=13)
+	#write.table (file="xdr.tbl", dr, quote=F, sep="\t", row.names=F)
+
+	# Order by N, DIFF, GC
+	do = scoresTable [order (scoresTable$MODEL,-scoresTable$DIFF),]; 
+	#hd (do)
+	#write.table (file="xdo.tbl", do, quote=F, sep="\t", row.names=F)
+
+	# Reduce to groups of N
+	dm = Reduce (rbind, by(do, do["MODEL"], head, n=N)); 
+	#hd (dm)
+	#write.table (file="xdm.tbl", dm, quote=F, sep="\t", row.names=F)
+
+	# Add Count of SNPs
+	summ = data.frame (add_count (dm, Marker, sort=T)); 
+	#hd (summ)
+	#write.table (file="xsumm.tbl", summ, quote=F, sep="\t", row.names=F)
+
+	# Order summary by 
+	best = summ [order (-summ$n, -summ$DIFF),]; 
+	#hd (best)
+	#write.table (file="xbest.tbl", best, quote=F, sep="\t", row.names=F)
+
+	# Remove duplicates
+	#nodups = best [!duplicated (best["Marker"], fromLast=F),] ; 
+	#hd (nodups,n=15,m=20)
+	#write.table (file="xndups.tbl", nodups, quote=F, row.names=F, sep="\t")
+
+	#bestN = nodups [1:N, ]
+
+	return (best)
+}
+
 #----------------------------------------------------------
 # Util to print head of data
 # Fast head, for debug only
 #----------------------------------------------------------
 hd <- function (data, m=10,n=10) {
-	msgmsg (deparse (substitute (data)),":")
+	msgmsg (deparse (substitute (data)),": ", dim (data))
 	if (is.null (dim (data)))
 		print (data [1:10])
 	else if (ncol (data) < 10) 

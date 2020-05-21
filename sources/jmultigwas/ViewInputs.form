@@ -82,6 +82,9 @@
           <Properties>
             <Property name="text" type="java.lang.String" value="Save..."/>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="buttonSaveActionPerformed"/>
+          </Events>
         </Component>
       </SubComponents>
     </Container>
@@ -499,7 +502,7 @@
                         <StringItem index="9" value="10"/>
                       </StringArray>
                     </Property>
-                    <Property name="selectedIndex" type="int" value="7"/>
+                    <Property name="selectedIndex" type="int" value="9"/>
                   </Properties>
                   <AuxValues>
                     <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;String&gt;"/>
