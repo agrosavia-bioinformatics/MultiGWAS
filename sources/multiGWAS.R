@@ -113,25 +113,21 @@ createMarkdownReport  <- function (config) {
 #-------------------------------------------------------------
 runGWASTools <- function (config) {
 	runOneTool <- function (tool, config) {
-		if (tool=="Gwasp")
-			runGwaspolyGwas (config)
-		else if (tool=="Plink")
-			runPlinkGwas (config)
-		else if (tool=="SHEsis")
-			runShesisGwas (config)
-		else if (tool=="Tassel")
-			runTasselGwas (config)
-		else
-			stop ("Tool not supported")
+		if      (tool=="gwaspoly") runGwaspolyGwas (config)
+		else if (tool=="plink")    runPlinkGwas (config)
+		else if (tool=="shesis")   runShesisGwas (config)
+		else if (tool=="tassel")   runTasselGwas (config)
+		else                       stop ("Tool not supported")
 	}
 
-	#runOneTool ("Plink", config)
-	#runOneTool ("SHEsis", config)
-	#runOneTool ("Tassel", config)
-	#runOneTool ("Gwasp", config)
-	msg ("Preparing to execute in parallel the four GWAS tools (GWASpoly, SHEsis, PLINK, and TASSEL)...")
-	msgmsg ("Running GWASpoly...");msgmsg ("Running SHEsis...");msgmsg ("Running PLINK...");msgmsg ("Running TASSEL...")
-	mclapply (c("Gwasp", "Plink", "SHEsis", "Tassel"), runOneTool, config, mc.cores=4, mc.silent=T)
+	# A string containing the names of the tools to run (e.g. "GWASpoly SHEsis PLINK TASSEL")
+	#config$tools = "Plink Shesis"
+	config$tools = strsplit(tolower (config$tools) ,split=" ")[[1]]
+	msg ("Preparing to execute in parallel the GWAS tools:") 
+	for (i in 1:length(config$tools)) 
+		msgmsg ("Running ", config$tools [i])
+
+	mclapply (config$tools, runOneTool, config, mc.cores=4, mc.silent=T)
 }
 
 #-------------------------------------------------------------
@@ -412,7 +408,6 @@ runTasselGwas <- function (params)
 
 		scores = -log10(results [,varP])
 		nas    = length (scores) - length (na.omit(scores))
-		message (paste(">>> ", nas, length (scores), length (P)))
 		#scores <- as.vector(na.omit(data@scores[[trait]][,model]))
 		m      = length (scores)
 
@@ -618,6 +613,7 @@ getConfigurationParameters <- function (configFile)
 	msgmsg ("GENO                   : ", params$GENO) 
 	msgmsg ("MAF                    : ", params$MAF) 
 	msgmsg ("HWE                    : ", params$HWE) 
+	msgmsg ("Tools                  : ", params$tools) 
 	msgmsg ("------------------------------------------------")
 
 	return (params)
