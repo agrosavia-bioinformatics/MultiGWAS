@@ -114,11 +114,26 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, gwasModel, out
 	dev.off()
 
 	
-	msgmsg ("Creating SNP heatmaps for the 4 best ranked SNPs...")
+	# Create heat maps
+	msgmsg ("Creating SNP heatmaps for the best ranked SNPs...")
 	genoNumericFilename = ACGTToNumericGenotypeFormat (genotypeFile)
-	snpList = snpTables$best$SNP [1:4]
+	#snpList = snpTables$best$SNP [1:4]
+	createHeatmapForSNPList (outputDir, genotypeFile, genoNumericFilename, phenotypeFile, commonBest)
+}
+#-------------------------------------------------------------
+#-------------------------------------------------------------
+
+createHeatmaps <- function (bestSNPs, outputDir, genotypeFile, genoNumericFilename, phenotypeFile, commonSign)
+{
+	dataNs     = data.frame (add_count (bestSNPs, SNP, sort=T)); 
+	dataShared = dataNs[dataNs$n > 1,]
+	dataNoDups = dataShared [!duplicated (dataShared$SNP),]
+
+	snpList = dataNoDups$SNP 
+	genoNumericFilename = ACGTToNumericGenotypeFormat (genotypeFile)
 	createHeatmapForSNPList (outputDir, genotypeFile, genoNumericFilename, phenotypeFile, commonSign)
 }
+
 
 #-------------------------------------------------------------
 # Calculate the inflation factor from -log10 values
@@ -159,7 +174,6 @@ markersManhattanPlots <- function (resultFiles, gwasModel, commonBest, commonSig
 		if (grepl ("GWASpoly", filename)) {
 			tool = "GWASpoly"
 			data = selectBestModel (data, nBest)
-			write.table (file="dataModel.csv", data, quote=F, sep="\t", row.names=F)
 			gwasResults = data.frame (SNP=data$Marker, CHR=data$Chrom, BP=data$Position, P=10^-data$SCORE)
 		}
 		else if (grepl ("SHEsis", filename)) {
@@ -311,25 +325,19 @@ sortBySharedSNPsMultipleModels <- function (scoresTable, N) {
 #------------------------------------------------------------------------
 markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 	flog.threshold(ERROR)
+	# Set lists for Venn diagrams
 	x <- list()
 	x$GWASpoly = summaryTable %>% filter (TOOL %in% "GWASpoly") %>% select (SNP) %>% .$SNP
 	x$SHEsis   = summaryTable %>% filter (TOOL %in% "SHEsis") %>% select (SNP) %>% .$SNP
 	x$PLINK    = summaryTable %>% filter (TOOL %in% "PLINK")  %>% select (SNP) %>% .$SNP
 	x$TASSEL   = summaryTable %>% filter (TOOL %in% "TASSEL") %>% select (SNP) %>% .$SNP
 
-	a = intersect (x$GWASpoly, x$SHEsis)
-	b = intersect (x$GWASpoly, x$PLINK)
-	c = intersect (x$GWASpoly, x$TASSEL)
-	d = intersect (x$SHEsis,   x$PLINK)
-	e = intersect (x$SHEsis,   x$TASSEL)
-	f = intersect (x$PLINK,    x$TASSEL)
-	#commonSNPs = intersect (intersect (x$GWASpoly, x$SHEsis), intersect(x$Plink, x$Tassel))
-	commonSNPs = union (union (a,b),union (union (c,d),union (e,f)))
-
+	# Create Venn diagram
 	mainTitle = paste0(gwasModel, "-", scoresType)
+	COLORS= c("red", "blue", "yellow", "green")
 	v0 <- venn.diagram(x, height=3000, width=3000, alpha = 0.5, filename = NULL, # main=mainTitle,
-						col = c("red", "blue", "green", "yellow"), cex=0.9, margin=0.0,
-						fill = c("red", "blue", "green", "yellow")) 
+						col = COLORS, cex=0.9, margin=0.0,
+						fill = COLORS)
 
 	overlaps <- calculate.overlap(x)
 	overlaps <- rev(overlaps)
@@ -350,9 +358,14 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 	grid.draw(v0)
 	dev.off()
 	
-	#grid.draw(v0)
+	# Get shared SNPs
+	dataSNPsNs     = data.frame (add_count (summaryTable, SNP, sort=T)); 
+	dataSNPsShared = dataSNPsNs[dataSNPsNs$n > 1,]
+	dataSNPsNoDups = dataSNPsShared [!duplicated (dataSNPsShared$SNP),]
+	sharedSNPs     = dataSNPsNoDups$SNP
 
-	return (commonSNPs)
+
+	return (sharedSNPs)
 }
 
 #------------------------------------------------------------------------
