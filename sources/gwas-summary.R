@@ -5,7 +5,6 @@
 # DATA   : feb/2020
 # LOG: 
 #	r4.2: "markersVennDiagrams" function writes plots
-#	r4.2: "markersVennDiagrams" function writes plots
 #	r4.1: Fixed transparency and axis error (options (bitmapType="cairo"))
 #	r4.0: Modified to work with markdown, but better to only report outputs (PNGs) to be included by markdown
 #	r3.0: Manhattan and QQ plots. Formated to create a Markdown report (not yet)
