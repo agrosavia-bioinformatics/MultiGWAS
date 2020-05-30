@@ -136,7 +136,7 @@ remain the same for all the best-ranked SNPs.
 snpFileList =  list.files(inputDir, pattern=paste0("^(.*(","SNPProfile",").*(png)[^$]*)$"), full.names=T)
 for (snpFile in snpFileList) {
 	cat("![](", snpFile, ")")
-	cat ("\n")
+	#cat ("\n")
 }
 
 ```

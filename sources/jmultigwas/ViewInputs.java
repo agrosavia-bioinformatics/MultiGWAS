@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.io.File;
 import java.util.prefs.Preferences;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 
 public class ViewInputs extends javax.swing.JPanel {
 
@@ -25,7 +26,7 @@ public class ViewInputs extends javax.swing.JPanel {
         fieldOutputDir.setText(getLastDir().toString());
         //fieldGeno.setText(getLastDir().toString());
         //fieldPheno.setText(getLastDir().toString());
-        
+
     }
 
     public File getLastDir() {
@@ -36,6 +37,8 @@ public class ViewInputs extends javax.swing.JPanel {
 
     public void setDefaults() {
         fieldOutputDir.setText(System.getProperty("user.home"));
+        fieldGeno.setText("");
+        fieldPheno.setText("");
         fieldSignificance.setText("0.05");
         fieldCorrection.setSelectedIndex(0);
         fieldModel.setSelectedIndex(0);
@@ -54,33 +57,36 @@ public class ViewInputs extends javax.swing.JPanel {
         fieldSignificance.setText("");
         fieldCorrection.setSelectedIndex(0);
         fieldModel.setSelectedIndex(0);
-        fieldSNPs.setSelectedIndex(4);
+        fieldSNPs.setSelectedIndex(9);
         fieldFiltering.setSelectedIndex(0);
         fieldFilterMAF.setText("");
         fieldFilterMIND.setText("");
         fieldFilterGENO.setText("");
         fieldFilterHWE.setText("");
-        setEnabledInputs (false);
+        setEnabledInputs(false);
     }
 
     public void setEnabledInputs(Boolean flag) {
         Component components[] = this.getComponents();
 
-        for (Component c : panelPaths.getComponents()) 
+        for (Component c : panelPaths.getComponents()) {
             c.setEnabled(flag);
-       
-        for (Component c : panelParameters.getComponents()) 
+        }
+
+        for (Component c : panelParameters.getComponents()) {
             c.setEnabled(flag);
-        
-        for (Component c : panelFilters.getComponents()) 
+        }
+
+        for (Component c : panelFilters.getComponents()) {
             c.setEnabled(flag);
+        }
 
         fieldOutputDir.setEnabled(true);
         labelOutputDir.setEnabled(true);
         selOutputDir.setEnabled(true);
     }
 
-    public String readInputData() {
+    public String getInputValues() {
         StringBuffer txt = new StringBuffer(500);
         String ln = System.lineSeparator();
         txt.append("default:" + ln);
@@ -95,17 +101,32 @@ public class ViewInputs extends javax.swing.JPanel {
         txt.append("  MIND                 : " + fieldFilterMIND.getText() + ln);
         txt.append("  GENO                 : " + fieldFilterGENO.getText() + ln);
         txt.append("  HWE                  : " + fieldFilterHWE.getText() + ln);
+        txt.append("  tools                : " + '"' + controller.getToolsToRun() + '"' + ln);
 
         return txt.toString();
     }
 
+    public boolean checkCompleteInfo() {
+        if (fieldOutputDir.getText().equals ("")) return false;
+        if (fieldGeno.getText().equals ("")) return false;
+        if (fieldPheno.getText().equals ("")) return false;
+        if (fieldSignificance.getText().equals ("")) return false;
+        if (fieldFilterMAF.getText().equals ("")) return false;
+        if (fieldFilterMIND.getText().equals ("")) return false;
+        if (fieldFilterGENO.getText().equals ("")) return false;
+        if (fieldFilterHWE.getText().equals ("")) return false;
+        if (controller.getToolsToRun().equals ("")) return false;
+        System.out.println("Success: complete information!!");
+        return true;
+    }
+
     public void runApplication() {
         String outputDir = fieldOutputDir.getText();
-        String fieldsText = readInputData();
+        String fieldsText = getInputValues();
 
-        controller.onRunApplication();
+        //controller.onRunApplication(outputDir, fieldsText);
 
-        model.runApplication(outputDir, fieldsText.toString());
+        //model.runApplication(outputDir, fieldsText.toString());
     }
 
     public String getOutputDir() {
@@ -122,12 +143,6 @@ public class ViewInputs extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        panelTitle = new javax.swing.JPanel();
-        jLabel13 = new javax.swing.JLabel();
-        panelButtons = new javax.swing.JPanel();
-        buttonRun = new javax.swing.JButton();
-        buttonOpen = new javax.swing.JButton();
-        buttonSave = new javax.swing.JButton();
         panelInputs = new javax.swing.JPanel();
         panelFilesTitle = new javax.swing.JPanel();
         jLabel14 = new javax.swing.JLabel();
@@ -170,39 +185,7 @@ public class ViewInputs extends javax.swing.JPanel {
         setPreferredSize(new java.awt.Dimension(780, 650));
         setLayout(new java.awt.BorderLayout());
 
-        panelTitle.setBackground(java.awt.Color.blue);
-        panelTitle.setForeground(java.awt.Color.yellow);
-
-        jLabel13.setForeground(java.awt.Color.yellow);
-        jLabel13.setText("Input Parameters");
-        panelTitle.add(jLabel13);
-
-        add(panelTitle, java.awt.BorderLayout.PAGE_START);
-
-        panelButtons.setBackground(new java.awt.Color(153, 153, 255));
-
-        buttonRun.setText("Run");
-        buttonRun.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                buttonRunActionPerformed(evt);
-            }
-        });
-        panelButtons.add(buttonRun);
-
-        buttonOpen.setText("Open...");
-        panelButtons.add(buttonOpen);
-
-        buttonSave.setText("Save...");
-        buttonSave.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                buttonSaveActionPerformed(evt);
-            }
-        });
-        panelButtons.add(buttonSave);
-
-        add(panelButtons, java.awt.BorderLayout.SOUTH);
-
-        panelInputs.setBackground(new java.awt.Color(204, 204, 255));
+        panelInputs.setBackground(javax.swing.UIManager.getDefaults().getColor("Button.focus"));
         panelInputs.setPreferredSize(new java.awt.Dimension(780, 650));
 
         panelFilesTitle.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
@@ -514,7 +497,7 @@ public class ViewInputs extends javax.swing.JPanel {
                         .addComponent(panelParametersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 352, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(panelFiltersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(18, Short.MAX_VALUE))
+                .addContainerGap(52, Short.MAX_VALUE))
         );
         panelInputsLayout.setVerticalGroup(
             panelInputsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -525,7 +508,7 @@ public class ViewInputs extends javax.swing.JPanel {
                 .addGroup(panelInputsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(panelFiltersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 234, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(panelParametersTitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(211, 211, 211))
+                .addGap(214, 214, 214))
         );
 
         add(panelInputs, java.awt.BorderLayout.CENTER);
@@ -546,10 +529,6 @@ public class ViewInputs extends javax.swing.JPanel {
             }
         }
     }//GEN-LAST:event_selOutputDirActionPerformed
-
-    private void buttonRunActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonRunActionPerformed
-        runApplication();
-    }//GEN-LAST:event_buttonRunActionPerformed
 
     private void selPhenotypeBtActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selPhenotypeBtActionPerformed
         if (evt.getSource() == selPhenotypeBt) {
@@ -582,30 +561,23 @@ public class ViewInputs extends javax.swing.JPanel {
 
     private void fieldFilteringActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldFilteringActionPerformed
         boolean flag = false;
-        System.out.println (fieldFiltering.getSelectedItem().toString());
-        if (fieldFiltering.getSelectedItem().toString().equals ("FALSE")) 
+        System.out.println(fieldFiltering.getSelectedItem().toString());
+        if (fieldFiltering.getSelectedItem().toString().equals("FALSE")) {
             flag = false;
-         else 
+        } else {
             flag = true;
-        
-        for (Component c : panelFilters.getComponents()) 
-            c.setEnabled(flag);      
+        }
+
+        for (Component c : panelFilters.getComponents())
+            c.setEnabled(flag);
     }//GEN-LAST:event_fieldFilteringActionPerformed
 
     private void fieldFilterHWEActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldFilterHWEActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_fieldFilterHWEActionPerformed
 
-    private void buttonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonSaveActionPerformed
-        controller.browseFile("/home/lg/aplicaciones/MultiGWAS/examples/Test01/out-Test01/multiGWAS-report.html",
-                "/home/lg/aplicaciones/MultiGWAS/examples/Test01/out-Test01/report");
-    }//GEN-LAST:event_buttonSaveActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton buttonOpen;
-    private javax.swing.JButton buttonRun;
-    private javax.swing.JButton buttonSave;
     private javax.swing.JComboBox<String> fieldCorrection;
     private javax.swing.JTextField fieldFilterGENO;
     private javax.swing.JTextField fieldFilterHWE;
@@ -620,7 +592,6 @@ public class ViewInputs extends javax.swing.JPanel {
     private javax.swing.JTextField fieldSignificance;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
@@ -634,7 +605,6 @@ public class ViewInputs extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel labelOutputDir;
-    private javax.swing.JPanel panelButtons;
     private javax.swing.JPanel panelFilesTitle;
     private javax.swing.JPanel panelFilters;
     private javax.swing.JPanel panelFiltersTitle;
@@ -642,7 +612,6 @@ public class ViewInputs extends javax.swing.JPanel {
     private javax.swing.JPanel panelParameters;
     private javax.swing.JPanel panelParametersTitle;
     private javax.swing.JPanel panelPaths;
-    private javax.swing.JPanel panelTitle;
     private javax.swing.JButton selGenotypeBt;
     private javax.swing.JButton selOutputDir;
     private javax.swing.JButton selPhenotypeBt;

@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JTabbedPane;
 
 class Controller extends JFrame {
@@ -70,12 +71,28 @@ class Controller extends JFrame {
         //onNewProject();
     }
 
+    public String getToolsToRun() {
+        String tools = viewToolBar.getToolsToRun();
+        
+
+        return (tools);
+    }
+
     public void onDefaultButton() {
         tabInputs.setDefaults();
     }
 
     public void onRunApplication() {
-        viewTabs.setSelectedIndex(1);
+        if (tabInputs.checkCompleteInfo()==false) {
+            JOptionPane.showMessageDialog(this, "Incomplete information", "MultiGWAS warning",
+                    JOptionPane.WARNING_MESSAGE);
+        }else {
+            String outputDir  = tabInputs.getOutputDir();
+            String values     = tabInputs.getInputValues();
+
+            model.runApplication(outputDir, values);
+            viewTabs.setSelectedIndex(1);
+        }
     }
 
     public void onCancelButton() {

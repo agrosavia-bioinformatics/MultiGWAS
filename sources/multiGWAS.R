@@ -63,6 +63,11 @@ main <- function (args)
 	# Create output dir "out/" and move to it
 	config = initWorkingEnvironment (configFile)
 
+	# Only for Manfre: Simplify SNPs names from genotype
+	data = read.csv (file=config$genotype)
+	data[,1] = gsub ("solcap_snp_","", data[,1])
+	write.csv (file=config$genotype, data, quote=F, row.names=F)
+
 	msg ("Running MultiGWAS for ", config$gwasModel, "model...") 
 
 	# Read, filter, and check phenotype and genotype
@@ -347,7 +352,7 @@ runShesisGwas <- function (params)
 	# Format data to table with scores and threshold
 	results  = read.table (file=scoresFile, header=T, sep="\t")
 	#pValues  = results[,"P.value"]
-	pValues  = results[,"FDR_BH"]
+	pValues  = results[,"P.value"]
 	m        = length (pValues)
 	#pValues  = p.adjust (pValues, meth="BY", m)
 	scores   = -log10 (pValues)

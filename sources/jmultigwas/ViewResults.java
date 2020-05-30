@@ -23,7 +23,7 @@ public class ViewResults extends JPanel {
         super();
         setLayout(new BorderLayout());
         dimension = new Dimension(d.width, (int) (0.9 * d.height));
-        this.setBackground(Color.BLUE);
+        //setBackground(new java.awt.Color(153, 153, 255));
     }
 
     public void showResults(String htmlFilename) {

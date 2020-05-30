@@ -40,7 +40,8 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	trait = colnames (phenotype) [2]
 
 
-	marker=t(genotypeNUMERIC[genotypeNUMERIC$Marker==snpId,])
+	#marker=t(genotypeNUMERIC[genotypeNUMERIC$Marker==snpId,])
+	marker=t(genotypeNUMERIC[genotypeNUMERIC[,1]==snpId,])
 	marker_2<-as.matrix(marker[-1:-3,])
 	head(marker_2)
 	alphabet_AA<-c("0","1","2","3","4")
@@ -61,7 +62,8 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	genoxfeno_3
 	head(phenoValues)
 	genoxfenov4<-as.matrix(genoxfeno_3[complete.cases(genoxfeno_3),])
-	marker=t(genotypeACGT[genotypeACGT$Marker==snpId,])
+	#marker=t(genotypeACGT[genotypeACGT$Marker==snpId,])
+	marker=t(genotypeACGT[genotypeACGT[,1]==snpId,])
 	marker_3<-as.matrix(marker[-1:-3,])
 	head(genotypeACGT)
 	marker_3
