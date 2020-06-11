@@ -35,6 +35,7 @@ HOME = Sys.getenv ("MULTIGWAS_HOME")
 suppressMessages (library (GWASpoly)) #
 suppressMessages (library (parallel)) #
 suppressMessages (library (config))  # For read config file
+NCORES             = detectCores ()
 
 # New class for gwaspoly
 setClass ("GWASpolyStruct", slots=c(params="list"), contains="GWASpoly.K")
@@ -63,7 +64,7 @@ main <- function (args)
 	# Create output dir "out/" and move to it
 	config = initWorkingEnvironment (configFile)
 
-	# Only for Manfre: Simplify SNPs names from genotype
+	# Only for agrosavia: Simplify SNPs names from genotype
 	data = read.csv (file=config$genotype)
 	data[,1] = gsub ("solcap_snp_","", data[,1])
 	write.csv (file=config$genotype, data, quote=F, row.names=F)
@@ -132,7 +133,7 @@ runGWASTools <- function (config) {
 	for (i in 1:length(config$tools)) 
 		msgmsg ("Running ", config$tools [i])
 
-	mclapply (config$tools, runOneTool, config, mc.cores=4, mc.silent=T)
+	mclapply (config$tools, runOneTool, config, mc.cores=NCORES, mc.silent=T)
 }
 
 #-------------------------------------------------------------
@@ -220,7 +221,7 @@ runGwaspolyGwas <- function (params)
 	data2 = controlPopulationStratification (data1, params$gwasModel, data2)
 
 	# GWAS execution
-	data3 <- runGwaspoly (data2, params) 
+	data3 <- runGwaspoly (data2, params, NCORES) 
 						  #params$gwasModel, params$snpModels,params$correctionMethod )
 
 	# Get SNP associations
@@ -230,6 +231,7 @@ runGwaspolyGwas <- function (params)
 	msgmsg ("    >>>> GWASpoly showResults...")
 	showResults (data3, params$testModels, params$trait, params$gwasModel, 
 				 params$phenotypeFile, ploidy)
+	msg ("...Ending GWASpoly")
 }
 
 #-------------------------------------------------------------
@@ -274,8 +276,6 @@ runPlinkGwas <- function (params)
 		cmm=sprintf ("%s/sources/scripts/script-plink-FullModel.sh %s %s %s", HOME, kinGeno, inPheno, outFile)
 		runCommand (cmm, "log-Plink.log")
 	}
-	else
-		quit (paste ("Type of GWAS:\"", model, "\", not supported"))
 
 	# Data preprocessing 
 	resultsAdjusted      <- read.table (file=outPlinkAdjusted,  header=T) 
@@ -307,6 +307,7 @@ runPlinkGwas <- function (params)
 							DIFF=round (scores-threshold, 6), resultsAdjusted)
 	resultsAll    <- resultsAll [order (resultsAll$DIFF, decreasing=T),]
 	write.table (file=outScores, resultsAll, row.names=F, quote=F, sep="\t")
+	msg ("... Ending PLINK")
 }
 	
 #-------------------------------------------------------------
@@ -374,6 +375,7 @@ runShesisGwas <- function (params)
 	resultsAll <- data.frame (MODEL=model, GC=GC$delta, SNP, CHR, POS, P=pValues, SCORE=round (scores,6), THRESHOLD=round (threshold,6), DIFF=round (scores-threshold, 6), results)
 	resultsAll <- resultsAll [order (resultsAll$DIFF, decreasing=T),]
 	write.table (file=scoresFile, resultsAll, row.names=F, quote=F, sep="\t")
+	msg ("... Ending SHEsis")
 }
 
 #-------------------------------------------------------------
@@ -437,6 +439,7 @@ runTasselGwas <- function (params)
 	# Join the tables, order by DIFF, and write it
 	scoresTableAll <- rbind (addTable, domTable, gnrTable)
 	write.table (file=scoresFile, scoresTableAll, quote=F, sep="\t", row.names=F)
+	msg ("... Ending TASSEL")
 }
 
 #-------------------------------------------------------------
@@ -464,17 +467,17 @@ dataPreprocessing <- function (genotypeFile, phenotypeFile, config)
 
 	# Convert geno/pheno to specific tool formats
 	msgmsg ("Converting and writing plink pheno filtered to other tools formats...")
-	convertToToolFormats (genotypeFile, phenotypeFile, config$gwasModel)
+	convertToToolFormats (genotypeFile, phenotypeFile, config$filtering)
 
 	return (list (genotypeFile=genotypeFile, phenotypeFile=phenotypeFile, trait=common$trait))
 }
 #-------------------------------------------------------------
 # Convert geno/pheno to the specific formats of the GWAS tools
 #-------------------------------------------------------------
-convertToToolFormats <- function (genotypeFile, phenotypeFile, filteringFlag) 
+convertToToolFormats <- function (genotypeFile, phenotypeFile, filtering) 
 {
 	# if no filters, only links original .tbl as filtered .tbl
-	if (filteringFlag==FALSE) {
+	if (filtering==FALSE) {
 		msgmsg (    "Without filters")
 		runCommand (sprintf ("ln -s %s %s", basename (genotypeFile), "out/filtered-gwasp4-genotype.tbl"))
 		runCommand (sprintf ("ln -s %s %s", basename (phenotypeFile), "out/filtered-gwasp4-phenotype.tbl"))
@@ -483,13 +486,17 @@ convertToToolFormats <- function (genotypeFile, phenotypeFile, filteringFlag)
 		plinkFile  = paste0 ("out/", strsplit (basename(genotypeFile), split="[.]")[[1]][1], "-plink")
 		gwaspToPlinkFormat (genotypeFile, plinkFile)
 
-		# binary to text: recode to plink format adjusted for tassel and plink
-		cmm = sprintf ("plink --file %s --recode tab --out %s", plinkFile, plinkFile)
+		# Make plink binary files from text file
+		cmm = paste ("plink --file", plinkFile, "--make-bed", "--out", plinkFile)
+		msg (cmm)
 		runCommand (cmm, "log-filtering.log")
 
-		# Copy links of filtered plink files to main dir
+		# Make links of no-filtered to filtered files 
 		runCommand (sprintf ("ln -s %s.ped out/filtered-plink-genotype.ped", basename (plinkFile)), "log-filtering.log")
 		runCommand (sprintf ("ln -s %s.map out/filtered-plink-genotype.map", basename (plinkFile)), "log-filtering.log")
+
+		runCommand (sprintf ("ln -s %s.bed out/filtered-plink-genotype.bed", basename (plinkFile)), "log-filtering.log")
+		runCommand (sprintf ("ln -s %s.fam out/filtered-plink-genotype.fam", basename (plinkFile)), "log-filtering.log")
 		runCommand (sprintf ("ln -s %s.bim out/filtered-plink-genotype.bim", basename (plinkFile)), "log-filtering.log")
 	}
 
@@ -537,17 +544,17 @@ filterByQCFilters <- function (genotypeFile, phenotypeFile, config)
 	gwaspToPlinkFormat (genotypeFile, plinkFile)
 
 	cmm = paste ("plink --file", plinkFile, "--make-bed", "--out", paste0(plinkFile,"-QC"))
-	if (config$filtering==T) {
-		msgmsg ("Filtering by missingness, MAF, and HWE")
-		# Filter missingness per sample (MIND)"
-		if (!is.null(config$MIND)) cmm=paste (cmm, paste ("--mind", config$MIND))
-		# Filter missingness per SNP    (GENO)
-		if (!is.null(config$GENO)) cmm=paste (cmm, paste ("--geno", config$GENO))
-		# Filter SNPs with a low minor allele frequency (MAF)
-		if (!is.null(config$MAF)) cmm=paste (cmm, paste ("--maf", config$MAF))
-		# Filter SNPs which are not in Hardy-Weinberg equilibrium (HWE).
-		if (!is.null(config$HWE)) cmm=paste (cmm, paste ("--hwe", config$HWE))
-	}
+
+	# Create string for plink command with filters 
+	msgmsg ("Filtering by missingness, MAF, and HWE")
+	# Filter missingness per sample (MIND)"
+	if (!is.null(config$MIND)) cmm=paste (cmm, paste ("--mind", config$MIND))
+	# Filter missingness per SNP    (GENO)
+	if (!is.null(config$GENO)) cmm=paste (cmm, paste ("--geno", config$GENO))
+	# Filter SNPs with a low minor allele frequency (MAF)
+	if (!is.null(config$MAF)) cmm=paste (cmm, paste ("--maf", config$MAF))
+	# Filter SNPs which are not in Hardy-Weinberg equilibrium (HWE).
+	if (!is.null(config$HWE)) cmm=paste (cmm, paste ("--hwe", config$HWE))
 
 	# Recode to plink format adjusted for tassel and plink
 	runCommand (cmm, "log-filtering.log" )
@@ -739,7 +746,9 @@ filterByMAFCommonNames <- function(geno.file, pheno.file, thresholdMAF=0.0){
 	map$Alt <- tmp[2,]
 
 	msgmsg ("Calculating numeric genotype matrix...")
-	M <- apply(cbind(map$Ref,markers),1,function(x){
+	matRef = cbind (map$Ref, markers)
+
+	M <- apply (matRef, 1, function(x){
 		y <- gregexpr(pattern=x[1],text=x[-1],fixed=T)  
 		ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))	
 		return(ans)
@@ -750,6 +759,7 @@ filterByMAFCommonNames <- function(geno.file, pheno.file, thresholdMAF=0.0){
 	bad <- length(which(!is.element(na.omit(M),0:ploidy)))
 	if (bad > 0) {stop("Invalid marker calls.")}
 	
+	# Check LG Global MAF (AF?)
 	msgmsg ("Checking minor allele frecuency, MAF=", thresholdMAF)
 	MAF <- apply(M,2,function(x){AF <- mean(x,na.rm=T)/ploidy;MAF <- ifelse(AF > 0.5,1-AF,AF)})
 	polymorphic <- which(MAF>thresholdMAF)

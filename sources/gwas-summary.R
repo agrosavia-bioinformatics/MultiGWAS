@@ -265,8 +265,8 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 	mainTitle = paste0(gwasModel, "-", scoresType)
 	COLORS= c("red", "blue", "yellow", "green")
 	v0 <- venn.diagram(x, height=3000, width=3000, alpha = 0.5, filename = NULL, # main=mainTitle,
-						col = COLORS, cex=0.9, margin=0.0,
-						fill = COLORS)
+						col = COLORS, cex=1.0, cat.cex=2.0, 
+						margin=0.0, fill = COLORS)
 
 	overlaps <- calculate.overlap(x)
 	overlaps <- rev(overlaps)
@@ -277,7 +277,7 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 		v0[[pos+8]]$label <- paste(overlaps[[i]], collapse = "\n")
  	}
 
-	WIDTH  = 9
+	WIDTH  = 11
 	HEIGHT = 12
 
  	png (paste0 (outFile,".png"), width=WIDTH, height=HEIGHT, units="in", res=120)

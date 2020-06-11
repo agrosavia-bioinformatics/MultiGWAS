@@ -69,7 +69,7 @@ controlPopulationStratification <- function (data1, gwasModel, data2)
 #-------------------------------------------------------------
 # GWAS execution
 #-------------------------------------------------------------
-runGwaspoly <- function (data2, params) 
+runGwaspoly <- function (data2, params, NCORES) 
 {
 	gwasModel        = params$gwasModel
 	snpModels        = params$snpModels
@@ -78,14 +78,14 @@ runGwaspoly <- function (data2, params)
 
  	if (gwasModel %in% c("Naive","Kinship")) {
 		msgmsg(">>>> Without params")
-		data3 = GWASpoly(data2, models=snpModels, traits=NULL, params=NULL, n.core=4)
+		data3 = GWASpoly(data2, models=snpModels, traits=NULL, params=NULL, n.core=NCORES)
 	}else {
 		msgmsg(">>>> With params")
 		data3 = GWASpoly(data2, models=snpModels, traits=NULL, params=data2@params)
 	}
 	
 	# QTL Detection
-	data4 = set.threshold (data3, method=correctionMethod,level=signLevel,n.core=4)
+	data4 = set.threshold (data3, method=correctionMethod,level=signLevel,n.core=NCORES)
 
 	return (data4)
 }

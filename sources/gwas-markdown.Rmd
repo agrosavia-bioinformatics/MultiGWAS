@@ -102,7 +102,7 @@ kable (significativesTable) %>%
 The Venn diagram shows the significative SNPs that are either unique or shared by the four software.  
 Shared SNPs appear in the intersection areas of the diagram.
 
-```{r, fig.align = "center", echo=FALSE, message=FALSE, fig.width=5, fig.height=5, fig.fullwidth=TRUE}
+```{r  fig.widht=11, fig.height=30, fig.fullwidth=TRUE}
 knitr::include_graphics (paste0 (inputDir,"/out-multiGWAS-vennDiagram-significatives.png"))
 ```
 

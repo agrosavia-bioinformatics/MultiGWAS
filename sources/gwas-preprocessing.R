@@ -116,7 +116,7 @@ createPlinkMapFromGwaspolyGenotype <- function (gwaspGenoFile, plinkFile)
 {
 	#msgmsg ("    >>>> Creating plink MAP file from ", gwaspGenoFile)
 	genotype    <- read.table (file=gwaspGenoFile, header=T,stringsAsFactors=T,sep=",", check.names=F)
-	map <- genotype [,-(1:3)]
+	map         <- genotype [,-(1:3)]
 	markers     <- as.character(genotype [,1])
 	chromosomes <- genotype [,2]
 	positions   <- genotype [,3]
@@ -135,31 +135,26 @@ createPlinkMapFromGwaspolyGenotype <- function (gwaspGenoFile, plinkFile)
 #----------------------------------------------------------
 createPlinkPedFromGwaspolyGenotype <- function (gwaspGenoFile, plinkFile) 
 {
-	if (file.exists (paste0(plinkFile,".ped"))) {
-		msgmsg ("    >>>> Loading plink file...")
-		return (plinkFile)
-	}else {
-		# ("    >>>> Creating plink PED file...")
-		genotype   <- read.csv (file=gwaspGenoFile, header=T, check.names=F)
-		alleles    <- as.matrix (genotype [,-c(1,2,3)])
-		rownames (alleles) <- genotype [,1]
+	# Creating plink PED file
+	genotype   <- read.csv (file=gwaspGenoFile, header=T, check.names=F)
+	alleles    <- as.matrix (genotype [,-c(1,2,3)])
+	rownames (alleles) <- genotype [,1]
 
-		# ("    >>>> Creating transposed genotype...")
-		samplesIds        <- colnames (alleles)
+	# Creating transposed genotype
+	samplesIds        <- colnames (alleles)
 
-		# ("    >>>> Getting Ref/Alt Alleles...")
-		refAltAlleles <- apply(alleles,1,get.ref)
+	# Getting Ref/Alt Alleles
+	refAltAlleles <- apply(alleles,1,get.ref)
 
-		# ("    >>>> Converting tetra to diplo")
-		allelesDiplo  <- tetraToDiplos (genotype[,-c(2,3)], refAltAlleles)
+	# Converting tetra to diplo
+	allelesDiplo  <- tetraToDiplos (genotype[,-c(2,3)], refAltAlleles)
 
-		# Adjust for plink PED file
-		allelesPlink <- t(allelesDiplo)
-		genoPED    <- cbind (samplesIds, samplesIds, 0,0,0,-9, allelesPlink)
+	# Adjust for plink PED file
+	allelesPlink <- t(allelesDiplo)
+	genoPED    <- cbind (samplesIds, samplesIds, 0,0,0,-9, allelesPlink)
 
-		# ("    >>>> Writing plink diplo PED file to ", plinkFile)
-		write.table (file= paste0 (plinkFile, ".ped"), genoPED, col.names=F, row.names=F, quote=F, sep="\t")
-	}
+	# Writing plink diplo PED file to plinkFile
+	write.table (file= paste0 (plinkFile, ".ped"), genoPED, col.names=F, row.names=F, quote=F, sep="\t")
 	
 	return (plinkFile)
 }
@@ -284,11 +279,27 @@ ACGTToNumericGenotypeFormat <- function (genotypeFile)
 	map$Ref <- tmp[1,]
 	map$Alt <- tmp[2,]
 
-	M <- apply(cbind(map$Ref,markers),1,function(x){
-		y <- gregexpr(pattern=x[1],text=x[-1],fixed=T)  
-		ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))	
-		return(ans)
-		})
+	#>>>> Convert one row from ACGT to Num. x=RefAllele|...Alleles...
+	acgtToNum <- function(x){
+			x   <- unlist (x)
+			y   <- gregexpr(pattern=x[1],text=x[-1],fixed=T)
+			ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))
+			return(ans)
+	}
+	#>>>>
+	# Convert All ACGT matrix to Num
+	matRefMarkers   = cbind(map$Ref,markers)
+	matTransposed   = t(matRefMarkers)
+	ACGTList        = mclapply(seq_len(ncol(matTransposed)), function(i) matTransposed[,i],mc.cores=detectCores())
+	numList         = mclapply(ACGTList, acgtToNum, mc.cores=detectCores())
+
+	M = as.data.frame (numList,col.names=rownames (matRefMarkers))
+	#M <- apply(cbind(map$Ref,markers),1, acgtToNum)
+	#M <- apply(cbind(map$Ref,markers),1,function(x){
+	#	y <- gregexpr(pattern=x[1],text=x[-1],fixed=T)  
+	#	ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))	
+	#	return(ans)
+	#	})
 
 	tM =  (t(M))
 	colnames (tM) = sampleNames
