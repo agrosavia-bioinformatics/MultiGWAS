@@ -4,6 +4,8 @@
 # AUTHOR: Luis Garreta (lgarreta@agrosavia.co)
 # DATE  : 12/Feb/2020
 # LOG   : 
+	# r1.1: VCF to ACGT functions
+	# r1.0: Working tetra and diplo
 	# r1.0: Used by MultiGWAS tool
 	# r1.1: Modified some function names
 
@@ -11,8 +13,50 @@
 #args = commandArgs(trailingOnly=T)
 suppressMessages (library (parallel))
 suppressMessages (library (dplyr))
+suppressMessages (library (stringi))
 formatsLogFile="log-formats.log"
 
+#------------------------------------------------------------------------------
+# Convert VCF to ACGT files
+#------------------------------------------------------------------------------
+convertVCFtoACGT <- function (filename, outFilename="") {
+	suppressMessages (library (vcfR))
+	vcf = read.vcfR (filename, verbose=F)
+
+	# Extract genotipe strings" 
+	gt = extract.gt (vcf, return.alleles=T)
+
+	# Extract map info (id, chrom, pos) Merge gt + info
+	map = vcf@fix [,c(1:2,4:5)]
+	gtmap = cbind (MARKERS=rownames (gt), map, gt)
+
+	# >>>>>>>> Convert VCF Genotypes to ACGT. First by row, then by cell
+	vcfToACGTForCell <- function (allelesCell) {
+		if (is.na (allelesCell))
+			return (NA)
+
+		numsall    = strsplit (allelesCell, split="[|/]")
+		str = sapply (numsall[[1]], substring, 1, 1)
+		acgt = stri_reverse (paste (str, collapse=""))
+		return (acgt)
+	}
+	vcfToACGTForRow <- function (allelesRow) {
+		rows = sapply (allelesRow, vcfToACGTForCell)
+		return (rows)
+	} # ">>>>>>>>>>>"
+
+	allelesMat = gtmap [,-1:-5]
+	allelesACGT <- t(apply (allelesMat, 1, vcfToACGTForRow))
+	colnames (allelesACGT) = colnames (allelesMat)
+	rownames (allelesACGT) = rownames (allelesMat)
+
+	newAlleles <- data.frame (gtmap[,1:3], allelesACGT)
+	if (outFilename=="")
+		outFilename = paste0 (strsplit (filename, "[.]")[[1]][1], ".csv")
+
+	write.csv (newAlleles, outFilename, row.names=F, quote=F)
+	return (outFilename)
+}
 #------------------------------------------------------------------------------
 # Convert genotye from plink (.ped, .map) to VCF (Variant Call Format)
 #------------------------------------------------------------------------------
@@ -198,24 +242,24 @@ impute.mode <- function(x) {
 #----------------------------------------------------------
 # Transform table genotype to SHEsis genotype format
 #----------------------------------------------------------
-gwaspToShesisGenoPheno <- function (genotypeFile, phenotypeFile) 
+gwaspToShesisGenoPheno <- function (genotypeFile, phenotypeFile, ploidy) 
 {
 	msgmsg ("    >>>> Writting gwasp to shesis genopheno...")
 	sep <- function (allele) {
 		s="";
-		for (i in 1:4) s=paste0(s, substr (allele,start=i,stop=i)," ");
+		for (i in 1:ploidy) s=paste0(s, substr (allele,start=i,stop=i)," ");
+		#s = paste (strsplit (allele, "")[[1]], collapse=" ")
 		return (s)
 	}
-
 	geno    <<- read.csv (file=genotypeFile, stringsAsFactors=F, check.names=F)
 	pheno   <<- read.csv (file=phenotypeFile, stringsAsFactors=F, check.names=F)
-	#stop("LG1")
 	rownames (pheno) <- pheno [,1]
 	map        <- geno  [,c(1,2,3)]    # Get SNP, Cromosome, Position
 	rownames (geno)  <- map [,1] 
 
 	alleles    <- geno[,-c(1,2,3)]
-	alleles [is.na(alleles)] = "0000"
+	alleles [is.na(alleles)] = paste (rep ("0", ploidy), collapse="") # NAs as "00" or "0000"
+
 	allelesMat <- t(sapply (alleles, sep))
 
 	samples         = rownames (allelesMat)
@@ -266,11 +310,10 @@ tetraToDiplos <- function (allelesMat, refAltAlleles)
 #----------------------------------------------------------
 # Convert gwaspoly genotype from ACGT to numeric format
 #----------------------------------------------------------
-ACGTToNumericGenotypeFormat <- function (genotypeFile) 
+ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy) 
 {
 	geno = read.csv (file=genotypeFile, header=T, check.names=F)
 	map <- data.frame(Marker=geno[,1],Chrom=factor(geno[,2],ordered=T),Position=geno[,3],stringsAsFactors=F)
-	ploidy=4
 
 	markers <<- as.matrix(geno[,-(1:3)])
 	sampleNames <<- colnames (geno[,-(1:3)])
@@ -286,6 +329,7 @@ ACGTToNumericGenotypeFormat <- function (genotypeFile)
 			ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))
 			return(ans)
 	}
+	
 	#>>>>
 	# Convert All ACGT matrix to Num
 	matRefMarkers   = cbind(map$Ref,markers)
@@ -459,16 +503,34 @@ runCommand <- function (command, logFile="") {
 		system (command)
 }
 
-hd <- function (data, m=10,n=10) {
-	msgmsg (deparse (substitute (data)),":")
+#----------------------------------------------------------
+# Util to print head of data
+# Fast head, for debug only
+#----------------------------------------------------------
+hd1 <- function (data, n=10,m=10) {
+	if (is.null (dim (data))) {
+		size = length
+		if (length (data) < 10) n = length(data)
+	}else {
+		size = dim
+		if (nrow (data) < 10) n = nrow(data)
+		if (ncol (data) < 10) m = ncol(data)
+	}
+
+	filename = deparse (substitute (data))
+	message (paste (deparse (substitute (data)),":  "))
+	print (size (data))
 	if (is.null (dim (data)))
-		print (data [1:10])
-	else if (ncol (data) < 5) 
-		print (data[1:m,])
+		print (data [1:m])
+	else if (ncol (data) < 10) 
+		print (data[1:n,])
 	else if (nrow (data) < 10)
-		print (data[,1:n])
+		print (data[,1:m])
 	else 
-		print (data [1:m, 1:n])
+		print (data [1:n, 1:m])
+
+	write.csv (data, paste0("x-", filename, ".csv"), quote=F, row.names=F)
+	
 }
 
 #----------------------------------------------------------

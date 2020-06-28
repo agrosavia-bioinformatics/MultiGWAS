@@ -26,14 +26,14 @@ public class Model {
         runAppWorker.execute();
     }
 
-    String writeToFile(String outputDir, String txt) {
+    String writeToFile(String outputDir, String inputValues) {
         String sep = File.separator;
         String dirName = new File(outputDir).getName();
         String configFilenamePath = outputDir + sep + dirName + ".config";
 
         try {
             FileWriter writer = new FileWriter(configFilenamePath);
-            writer.write(txt);
+            writer.write(inputValues);
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();

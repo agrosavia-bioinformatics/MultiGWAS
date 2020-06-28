@@ -15,10 +15,13 @@ runGwaspGwas <- function (params)
 
 
 	# Only for tetra ployds
-	ploidy = 4
+	ploidy = params$ploidy
 
-	snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
-	testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
+	#snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
+	#testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
+
+	snpModels  = c("general","additive")#,"1-dom", "2-dom", "diplo-general", "diplo-additive")
+	testModels = c("general", "additive")#,"1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
 
 	params = append (params, list (snpModels=snpModels, testModels=testModels))
 
@@ -26,7 +29,7 @@ runGwaspGwas <- function (params)
 	data1 <- initGWAS (phenotypeFile, genotypeFile, ploidy, "ACGT", data1)
 
 	# Control population structure
-	data2 = controlPopulationStratification (data1, params$gwasModel, data2)
+	data2 = controlPopulationStratification (data1, params$gwasModel)
 
 	# GWAS execution
 	data3 <- runGwaspoly (data2, params$gwasModel, params$snpModels, data3)
@@ -39,12 +42,9 @@ runGwaspGwas <- function (params)
 #-------------------------------------------------------------
 # Control population structure using default Kinship and PCs
 #-------------------------------------------------------------
-controlPopulationStratification <- function (data1, gwasModel, data2) 
+controlPopulationStratification <- function (data1, gwasModel) 
 {
 	msgmsg ();msgmsg("Controlling populations structure...")
-
- 	# Load data instead calculate it
-	if (!is.null (data2)) {msgmsg(">>>> Loading kinship..."); return (data2) }
 
 	if (gwasModel=="Naive") {
 		msgmsg("    >>>> Without any correction") 
@@ -245,7 +245,7 @@ qqPlot <- function(data,trait,model,cex=1,filename=NULL)
 #-------------------------------------------------------------
 # Read input genotype and genotype (format: "numeric", "AB", or "ACGT")
 #-------------------------------------------------------------
-initGWAS <- function (phenotypeFile, genotypeFile, ploidy, format="ACGT", data1) 
+initGWAS <- function (phenotypeFile, genotypeFile, ploidy, format="ACGT") 
 {
 	msgmsg ();msgmsg("Initializing GWAS...");msgmsg ()
 	# When data is previously loaded

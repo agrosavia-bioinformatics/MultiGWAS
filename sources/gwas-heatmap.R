@@ -27,7 +27,7 @@ createHeatmapForSNPList <- function (outputDir, genoFileACGT, genoFileNUM, pheno
 	outName = paste0 (outputDir, "/out-SNPProfile") 
 
 	pdfHeatMap <- function (snp) {
-		message  ("    >>>> Heatmap for snp: ", snp)
+		msgmsgmsg  ("Heatmap for snp: ", snp)
 		createHeatmapForSNP (outputDir, genoFileACGT, genoFileNUM, phenoFile, snp)
 	}
 
@@ -137,6 +137,19 @@ msg <- function (...)
 		messages = unlist (list (...))
 		cat (">>>>", messages, "\n")
 }
+msgmsg <- function (...) 
+{
+  messages = unlist (list (...))
+  cat ("\t>>>>", messages, "\n")
+}
+msgmsgmsg <- function (...) 
+{
+  messages = unlist (list (...))
+  cat ("\t\t>>>>", messages, "\n")
+}
+
+
+
 
 #----------------------------------------------------------
 #----------------------------------------------------------
