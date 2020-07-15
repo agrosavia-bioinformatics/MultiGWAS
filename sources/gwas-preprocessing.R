@@ -16,10 +16,21 @@ suppressMessages (library (dplyr))
 suppressMessages (library (stringi))
 formatsLogFile="log-formats.log"
 
+HOME = Sys.getenv ("MULTIGWAS_HOME")
+#------------------------------------------------------------------------------
+# Convert VCF to ACGT files using "NGSEP"
+#------------------------------------------------------------------------------
+convertVCFToACGTByNGSEP <- function (filename, outFilename="") {
+	stemName = strsplit (filename, "[.]")[[1]][1]
+	cmm=sprintf ("java -jar %s/tools/MultiGWAS_NGSEP.jar VCFConverter -GWASPoly -i %s -o %s", HOME, filename, stemName)
+	runCommand (cmm, "log-tassel.log")
+	outFilename = paste0 (stemName, "_GWASPoly.csv") # Added by NGSEP tool
+	return (outFilename)
+}
 #------------------------------------------------------------------------------
 # Convert VCF to ACGT files
 #------------------------------------------------------------------------------
-convertVCFtoACGT <- function (filename, outFilename="") {
+convertVCFtoACGTByVCFR <- function (filename, outFilename="") {
 	suppressMessages (library (vcfR))
 	vcf = read.vcfR (filename, verbose=F)
 
@@ -348,7 +359,7 @@ ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy)
 	tM =  (t(M))
 	colnames (tM) = sampleNames
 
-	newGeno = data.frame (map[,1:3], tM)
+	newGeno = data.frame (map[,1:3], tM, check.names=F) # Check=FALSE names but not row names
 	newName = paste0 (strsplit (genotypeFile, split="[.]")[[1]][1], "-NUM.tbl")
 	write.csv (file=newName, newGeno, quote=F, row.names=F)
 

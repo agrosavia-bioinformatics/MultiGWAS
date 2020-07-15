@@ -1,42 +1,41 @@
+#!/usr/bin/Rscript
 # INFO   : Script to run GWASpoly for tetraploides (modified from GWASpoly sources)
 # AUTHOR : Luis Garreta (lgarreta@agrosavia.co)
 # DATA   : Feb/2020
 # LOG    :
+	# r1.1:  Added main. Changed naive kinship matrix to NULL
 	# r1.02:  Hidden warnigns qchisq
 	# r1.01:  Removed annotations from functions. Output results to "out/" dir 
 #-------------------------------------------------------------
-#-------------------------------------------------------------
-runGwaspGwas <- function (params) 
-{
+main <- function () {
+	library (GWASpoly)
+	# New class for gwaspoly
+	setClass ("GWASpolyStruct", slots=c(params="list"), contains="GWASpoly.K")
+
+	args = commandArgs(trailingOnly = TRUE)
+	params = list()
+	params$genotypeFile      = args [1] 
+	params$phenotypeFile     = args [2] 
+	params$trait             = colnames (read.csv (params$phenotypeFile))[2]
+	params$ploidy            = 4
+	params$gwasModel         = "Naive"
+	params$snpModels         = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
+	params$testModels        = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
+	params$correctionMethod  = "Bonferroni"
+	params$significanceLevel = 0.05
+
 	msgmsg("Running GWASpoly...")
 
-	genotypeFile  = params$genotypeFile
-	phenotypeFile = params$phenotypeFile
-
-
-	# Only for tetra ployds
-	ploidy = params$ploidy
-
-	#snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
-	#testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
-
-	snpModels  = c("general","additive")#,"1-dom", "2-dom", "diplo-general", "diplo-additive")
-	testModels = c("general", "additive")#,"1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref","diplo-general", "diplo-additive")
-
-	params = append (params, list (snpModels=snpModels, testModels=testModels))
-
 	# Read input genotype and genotype (format: "numeric", "AB", or "ACGT")
-	data1 <- initGWAS (phenotypeFile, genotypeFile, ploidy, "ACGT", data1)
+	data1 <- initGWAS (params$phenotypeFile, params$genotypeFile, params$ploidy, "ACGT")
 
 	# Control population structure
 	data2 = controlPopulationStratification (data1, params$gwasModel)
 
 	# GWAS execution
-	data3 <- runGwaspoly (data2, params$gwasModel, params$snpModels, data3)
+	data3 <- runGwaspoly (data2, params, 8)
 	showResults (data3, params$testModels, params$trait, params$gwasModel, 
-				 params$phenotypeFile, ploidy)
-
-	if (LOAD_DATA) save(data, data1, data2, data3, file="gwas.RData") 
+				 params$phenotypeFile, params$ploidy)
  }
 
 #-------------------------------------------------------------
@@ -48,12 +47,12 @@ controlPopulationStratification <- function (data1, gwasModel)
 
 	if (gwasModel=="Naive") {
 		msgmsg("    >>>> Without any correction") 
-		markers = data1@pheno [,1]
-		n       = length (markers)
+		markers       = data1@pheno [,1]
+		n             = length (markers)
 		kinshipMatrix = matrix (diag (n), n, n, dimnames=list (markers, markers))
-		dataTmp      <- set.K (data1, K=kinshipMatrix)
-		#dataTmp      <- set.K (data1, K=NULL)
-		data2        = new ("GWASpolyStruct", dataTmp)
+		#dataTmp      <- set.K (data1, K=kinshipMatrix)
+		dataTmp       = set.K (data1, K=NULL)
+		data2         = new ("GWASpolyStruct", dataTmp)
 	}else if (gwasModel == "Full") {
 		msgmsg("    >>>> Using default Kinship and PCs=5 ")
 		kinshipMatrix = NULL
@@ -76,7 +75,7 @@ runGwaspoly <- function (data2, params, NCORES)
 	correctionMethod = params$correctionMethod
 	signLevel        = params$significanceLevel
 
- 	if (gwasModel %in% c("Naive","Kinship")) {
+ 	if (gwasModel %in% c("Naive")) {
 		msgmsg(">>>> Without params")
 		data3 = GWASpoly(data2, models=snpModels, traits=NULL, params=NULL, n.core=NCORES)
 	}else {
@@ -248,8 +247,6 @@ qqPlot <- function(data,trait,model,cex=1,filename=NULL)
 initGWAS <- function (phenotypeFile, genotypeFile, ploidy, format="ACGT") 
 {
 	msgmsg ();msgmsg("Initializing GWAS...");msgmsg ()
-	# When data is previously loaded
-	if (!is.null (data)) {msgmsg(">>>> Loading GWAS data..."); return (data)}
 
 	data1 <- read.GWASpoly (ploidy = ploidy, pheno.file = phenotypeFile, 
 							geno.file = genotypeFile, format = "ACGT", n.traits = 1, delim=",")
@@ -264,3 +261,13 @@ addLabel <- function (filename, label)  {
 	newName = paste0 (nameext [[1]][1], "-", label, ".", nameext [[1]][2])
 	return (newName)
 }
+#-------------------------------------------------------------
+#-------------------------------------------------------------
+msgmsg <- function (...) 
+{
+  messages = unlist (list (...))
+  cat ("\t>>>>", messages, "\n")
+}
+
+#-------------------------------------------------------------
+#main ()

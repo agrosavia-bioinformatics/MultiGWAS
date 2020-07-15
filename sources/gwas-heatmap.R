@@ -1,5 +1,7 @@
 #!/usr/bin/Rscript
-#LOG: Jun 06: Fixed, not include NAs in both geno and pheno
+# LOG: 
+#     Jul 11: Removed NAs with complete.cases
+#     Jun 06: Fixed, not include NAs in both geno and pheno
 
 suppressMessages (library (gplots)) 
 #----------------------------------------------------------
@@ -27,21 +29,23 @@ createHeatmapForSNPList <- function (outputDir, genoFileACGT, genoFileNUM, pheno
 	outName = paste0 (outputDir, "/out-SNPProfile") 
 
 	pdfHeatMap <- function (snp) {
-		msgmsgmsg  ("Heatmap for snp: ", snp)
+		message  ("    >>>> Heatmap for snp: ", snp)
 		createHeatmapForSNP (outputDir, genoFileACGT, genoFileNUM, phenoFile, snp)
 	}
 
 	NCORES = detectCores ()
-	res=mclapply (snpList, pdfHeatMap, mc.cores=NCORES)
+	for (s in snpList)
+		pdfHeatMap (s)
+	#res=mclapply (snpList, pdfHeatMap, mc.cores=NCORES)
 }
 
 #----------------------------------------------------------
 # create a SNP profile for a snpId
 #----------------------------------------------------------
 createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile, snpId) {
-	genotypeACGT    <- read.table(genoFileACGT, header = TRUE, sep = ",", na.strings = "NA", dec = ".", strip.white = TRUE)
-	genotypeNUMERIC <- read.table(genoFileNUM, header = TRUE, sep = ",", na.strings = "NA", dec = ".", strip.white = TRUE)
-	phenotype       <- read.table(phenoFile, header = TRUE, sep = ",", na.strings = "NA", dec = ".", strip.white = TRUE)
+	genotypeACGT    <- read.table(genoFileACGT, header = TRUE, sep = ",", na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F )
+	genotypeNUMERIC <- read.table(genoFileNUM, header = TRUE, sep = ",", na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
+	phenotype       <- read.table(phenoFile, header = TRUE, sep = ",", na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
 
 	phenoNames  = phenotype [,1]
 	phenoValues = phenotype [,2]
@@ -64,31 +68,25 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	names(c)<-names(marker_2)
 	e<-as.data.frame(c,row.names = marker_2[1,])
 	e$Name<-row.names(marker_2)
-	e
 	genoxfeno_2<-subset(e,e$Name%in%phenoNames)
 	genoxfeno_3<-genoxfeno_2[,1:5]*phenoValues
 
-	# Remove rows with NAs from geno and pheno
-	rowsNAs = as.numeric (rownames(genoxfeno_3)[!complete.cases(genoxfeno_3)])
-	if (length (rowsNAs) > 0) {
-		genoxfeno_3 = genoxfeno_3 [-as.numeric(rowsNAs),]
-		phenoNames  = phenoNames  [-rowsNAs]
-	}
-	rownames (genoxfeno_3) <- phenoNames
-
-	genoxfenov4<-as.matrix(genoxfeno_3)
+	# Remove rows with NAs from genoxfeno_3 
+	g3NAs                 = genoxfeno_3
+	rownames (g3NAs)      = phenoNames 
+	g3noNAs               = g3NAs[complete.cases(g3NAs),]
+	genoxfenov4           = as.matrix(g3noNAs)
+	rownames(genoxfenov4) = rownames (g3noNAs)
 
 	#marker=t(genotypeACGT[genotypeACGT$Marker==snpId,])
 	marker=t(genotypeACGT[genotypeACGT[,1]==snpId,])
 	marker_3<-as.matrix(marker[-1:-3,])
-
 
 	marker_3
 	z<-data.frame(marker_3)
 	data_geno_num_ACGT<-data.frame(marker_2,marker_3)
 	data_geno_num_ACGT
 	
-
 	gen_0<-subset(data_geno_num_ACGT,marker_2=="0",select = marker_3)
 	o<-as.character(gen_0$marker_3[1])    
 	gen_4<-subset(data_geno_num_ACGT,marker_2=="4",select = marker_3)
@@ -100,7 +98,6 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	gen_3<-subset(data_geno_num_ACGT,marker_2=="3",select = marker_3)
 	E<-as.character(gen_3$marker_3[1])
 	colnames(genoxfenov4)<-c(o,l,s,E,a)
-	rownames(genoxfenov4)<-phenoNames
 
 	my_palette <- colorRampPalette(c("white", "blue", "darkblue", "darkred"))(n = 100)
 	lmat <- rbind(c(5,4), c(2,3), c(2,1))
@@ -137,19 +134,6 @@ msg <- function (...)
 		messages = unlist (list (...))
 		cat (">>>>", messages, "\n")
 }
-msgmsg <- function (...) 
-{
-  messages = unlist (list (...))
-  cat ("\t>>>>", messages, "\n")
-}
-msgmsgmsg <- function (...) 
-{
-  messages = unlist (list (...))
-  cat ("\t\t>>>>", messages, "\n")
-}
-
-
-
 
 #----------------------------------------------------------
 #----------------------------------------------------------
