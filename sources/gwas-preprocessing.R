@@ -24,7 +24,7 @@ convertVCFToACGTByNGSEP <- function (filename, outFilename="") {
 	stemName = strsplit (filename, "[.]")[[1]][1]
 	cmm=sprintf ("java -jar %s/tools/MultiGWAS_NGSEP.jar VCFConverter -GWASPoly -i %s -o %s", HOME, filename, stemName)
 	runCommand (cmm, "log-tassel.log")
-	outFilename = paste0 (stemName, "_GWASpoly.csv") # Added by NGSEP tool
+	outFilename = paste0 (stemName, "_GWASPoly.csv") # Added by NGSEP tool
 	return (outFilename)
 }
 
@@ -33,7 +33,7 @@ convertVCFToACGTByNGSEP <- function (filename, outFilename="") {
 # Checks if VCF, GWASpoly, or k-matrix.
 #-------------------------------------------------------------
 checkGenotypeFormat <- function (genotypeFile, ploidy) {
-	message ("Checking genotype file format...")
+	msg ("Checking genotype file format...")
 	con = file (genotypeFile, "r")
 	firstLine = readLines (con, n=1)
 	close (con)
@@ -57,7 +57,7 @@ checkGenotypeFormat <- function (genotypeFile, ploidy) {
 
 	if (all(sapply(sample, equalLength, ploidy), na.rm=T)==TRUE) {
 		N = nrow (data)
-		newFilename = paste0 (strsplit (genotypeFile, "[.]")[[1]][1], "_GWASpoly.csv")
+		newFilename = paste0 (strsplit (genotypeFile, "[.]")[[1]][1], "_GWASPoly.csv")
 		genoGwaspoly = data.frame (Markers=rownames (data), Chrom=1, Position=1:N, data)
 		write.csv (genoGwaspoly, newFilename, row.names=F)
 		return (newFilename)

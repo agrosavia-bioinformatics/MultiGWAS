@@ -27,19 +27,18 @@ We describe here the [MultiGWAS](https://github.com/agrosavia-bionformatics/mult
   - Binaries and Java classes for the four GWAS packages  GWASpoly, SHEsis, TASSEL, and PLINK (r1.9 and r2.0)
   
 ## General steps to install multiGWAS on a Linux system
-  1. Install pandoc markup converter, if not installed. 
-  2. Install git tool to clone github repository, if not installed.
-  3. Install Oracle Java runtime, if not installed.
-  4. Install R 3.6, if not installed. 
-  5. Clone the multiGWAS repository
-  6. Execute the multiGWAS installer:
+  1. If not installed, install linux dependencies git pandoc libcurl4-openssl-dev libxml2-dev libssl-dev
+  2. If not installed, install Oracle Java runtime
+  3. If not installed, install R 3.6
+  4. Clone the multiGWAS repository
+  5. Execute the multiGWAS installer:
 
 ## Specific instructions to install multiGWAS on a Linux Ubuntu
 ### Install external software
 The MultiGWAS tool currently runs on Linux systems (tested on Ubuntu Linux 18.04 LTS, x86_64 GNU / Linux), and requires the following software to be installed:
-  - Install git tool and pandoc markup converter: 
+  - Install linux dependencies  
 ```
-    sudo apt install git pandoc
+		sudo apt install git pandoc libcurl4-openssl-dev libxml2-dev libssl-dev
 ```
   - R 3.6 or higher. If not installed see https://cran.r-project.org/bin/linux/ubuntu/README.html or Open a Linux console and enter the following instructions for Ubuntu 18.04 (bionic):
 ```
@@ -65,7 +64,7 @@ Open a Linux console (or terminal) and enter the following instructions:
 # 2. Change to the multiGWAS dir:
     cd multiGWAS
 # 3. Execute the installer:
-    . INSTALL.SH         # dot space INSTALL.SH
+    Rscript INSTALL.R         
 # 4. The MultiGWAS tool is ready to use.
 ```
 

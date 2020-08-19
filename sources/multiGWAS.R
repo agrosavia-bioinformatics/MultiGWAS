@@ -14,7 +14,7 @@
 	# r0.9: Full functional, but it needs to be improved: own filtes (HWE), SHEsis Full model, corrections and thresholds (FDR, BONF), Manhattan plots
 
 # Constants
-DEBUG              = T
+DEBUG              = F
 SIGNIFICANCE_LEVEL = 0.05      # Minimun level of significance (alpha) to considerer a significant SNP
 
 args = commandArgs(trailingOnly = TRUE)
@@ -210,13 +210,15 @@ runToolGwaspoly <- function (params)
 	# Only for tetra ployds
 	ploidy = params$ploidy
 
-	# For tetraploids
-	snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
-	testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref", "diplo-general", "diplo-additive")
-
-	# For diploid
-	#snpModels  = c("general","additive","1-dom", "diplo-general", "diplo-additive")
-	#testModels = c("general", "additive","1-dom-alt","1-dom-ref","diplo-general", "diplo-additive")
+	if (ploidy==4) {
+		# For tetraploids
+		snpModels  = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
+		testModels = c("general", "additive","1-dom-alt","1-dom-ref","2-dom-alt","2-dom-ref", "diplo-general", "diplo-additive")
+	}else{
+		# For diploid
+		snpModels  = c("general","additive","1-dom", "diplo-general", "diplo-additive")
+		testModels = c("general", "additive","1-dom-alt","1-dom-ref","diplo-general", "diplo-additive")
+	}
 
 	# Only for testing
 	#snpModels  = c("general","additive")
@@ -465,10 +467,7 @@ dataPreprocessing <- function (genotypeFile, phenotypeFile, config)
 	
 	# Check for VCF, GWASpoly, or k-matrix.
 	# and convert to GWASpoly format
-	print (">>>>>>>>>>>>>>>>> before")
-	print (genotypeFile)
 	genotypeFile = checkGenotypeFormat (genotypeFile, config$ploidy)
-	print (genotypeFile)
 	
 	# Filter by common sample names
 	common <- filterByMAFCommonNames (genotypeFile, phenotypeFile, config$ploidy)
