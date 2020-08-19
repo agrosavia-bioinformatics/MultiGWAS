@@ -8,6 +8,9 @@
 #	r5.0: Heuristic to select best gene action model
 #	r4.1: Fixed transparency and axis error (options (bitmapType="cairo"))
 
+HOME = Sys.getenv ("MULTIGWAS_HOME")
+.libPaths (paste0(HOME, "/opt/Rlibs"))
+
 suppressMessages (library (dplyr))
 suppressMessages (library (qqman))
 suppressMessages (library (VennDiagram))
@@ -15,8 +18,6 @@ suppressMessages (library (config))          # For read config file
 suppressMessages (library ("RColorBrewer"))  # For chord diagrams
 suppressMessages (library(circlize))         # For chord diagrams
 
-
-HOME = Sys.getenv ("MULTIGWAS_HOME")
 
 options (bitmapType="cairo", width=300)
 #options(scipen=999)
@@ -38,8 +39,8 @@ main <- function () {
 	genotypeFile  = "out/filtered-gwasp4-genotype.tbl"
 	phenotypeFile = "out/filtered-gwasp4-phenotype.tbl"
 	outputDir   = "report/"
-	gwasModel    = "Full"
-	nBest  = 10
+	gwasModel    = "Naive"
+	nBest  = 5
 	ploidy = 4
 
 	createReports (inputDir, genotypeFile, phenotypeFile, 
@@ -297,6 +298,12 @@ selectBestModel <- function (data, nBest, tool) {
 # Create Venn diagram of common markers using info from summary table
 #------------------------------------------------------------------------
 markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
+	# Params for figure shape and fonts
+	WIDTH  = 7
+	HEIGHT = 9
+	CEXLABELS = 0.6
+	CEXTITLES = 1.0
+
 	flog.threshold(ERROR)
 	# Set lists for Venn diagrams
 	x <- list()
@@ -308,8 +315,8 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 	# Create Venn diagram
 	mainTitle = paste0(gwasModel, "-", scoresType)
 	COLORS= c("red", "blue", "yellow", "green")
-	v0 <- venn.diagram(x, height=3000, width=3000, alpha = 0.5, filename = NULL, # main=mainTitle,
-						col = COLORS, cex=1.0, cat.cex=2.0, 
+	v0 <- venn.diagram(x, height=2000, width=3000, alpha = 0.5, filename = NULL, # main=mainTitle,
+						col = COLORS, cex=CEXLABELS, cat.cex=CEXTITLES, 
 						margin=0.0, fill = COLORS)
 
 	overlaps <- calculate.overlap(x)
@@ -321,8 +328,6 @@ markersVennDiagrams <- function (summaryTable, gwasModel, scoresType, outFile){
 		v0[[pos+8]]$label <- paste(overlaps[[i]], collapse = "\n")
  	}
 
-	WIDTH  = 11
-	HEIGHT = 12
 
  	png (paste0 (outFile,".png"), width=WIDTH, height=HEIGHT, units="in", res=120)
 	grid.draw(v0)

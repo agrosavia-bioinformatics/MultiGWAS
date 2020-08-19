@@ -14,7 +14,7 @@
 	# r0.9: Full functional, but it needs to be improved: own filtes (HWE), SHEsis Full model, corrections and thresholds (FDR, BONF), Manhattan plots
 
 # Constants
-DEBUG              = F
+DEBUG              = T
 SIGNIFICANCE_LEVEL = 0.05      # Minimun level of significance (alpha) to considerer a significant SNP
 
 args = commandArgs(trailingOnly = TRUE)
@@ -43,7 +43,7 @@ setClass ("GWASpolyStruct", slots=c(params="list"), contains="GWASpoly.K")
 
 options (width=300, warn=1)
 # Send warnings and errors to log file
-#sink (file ("log-warnings-errors.log", open="wt"), type="message")
+sink (file ("log-warnings-errors.log", open="wt"), type="message")
 source (paste0 (HOME, "/sources/gwas-preprocessing.R"))      # Module with functions to convert between different genotype formats 
 source (paste0 (HOME, "/sources/gwas-summary.R"))            # Module with functions to create summaries: tables and venn diagrams
 source (paste0 (HOME, "/sources/gwas-heatmap.R"))            # Module with functions to create summaries: tables and venn diagrams
@@ -460,9 +460,16 @@ runToolTassel <- function (params)
 dataPreprocessing <- function (genotypeFile, phenotypeFile, config) 
 {
 	# Check if VCF file
-	genotypeFile = convertGenotypeVCFtoACGT (genotypeFile)
-	
+	#genotypeFile = convertGenotypeVCFtoACGT (genotypeFile)
 
+	
+	# Check for VCF, GWASpoly, or k-matrix.
+	# and convert to GWASpoly format
+	print (">>>>>>>>>>>>>>>>> before")
+	print (genotypeFile)
+	genotypeFile = checkGenotypeFormat (genotypeFile, config$ploidy)
+	print (genotypeFile)
+	
 	# Filter by common sample names
 	common <- filterByMAFCommonNames (genotypeFile, phenotypeFile, config$ploidy)
 	#common = filterByCommonNames (genotypeFile, phenotypeFile)

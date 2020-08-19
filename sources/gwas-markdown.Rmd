@@ -16,8 +16,12 @@ title  : `r params$reportTitle`
 
 ---
 
-This report, created by the MultiGWAS tool, is a summary of the input parameters used to run the tool and its main outputs. The outputs include the best-ranked and significative SNPs found for each tool. For each one, there is a score table, Venn diagram, and an SNP profile.  
- 
+MultiGWAS is a tool to do GWAS analysis in tetraploid organisms by executing in parallel and integrating the results from four existing GWAS software: two available for polyploids (GWASpoly and SHEsis) and two frequently used for diploids (PLINK and TASSEL). 
+
+MultiGWAS executes two types of GWAS models: Full and Naive.  The Full model with control for population structure and individual relatedness and the Naive model without any control. In both models, users can apply different control quality filters for the genomic data. 
+
+This report, created by the MultiGWAS tool, is a summary of the input parameters used to run the tool and its main outputs, including (1) Score tables with detailed information on the associations for each tool. (2) Venn diagrams of shared SNPs among the four tools. (3) Heatmaps of significative SNP profiles among the four tools. (4) Manhattan and QQ plots for the association found by each tool. And (5) Chord diagrams for the chromosomes vs. SNP by each tool.
+
 ```{r includeKnit, include=FALSE,echo=FALSE}
 library(knitr)
 library(kableExtra)
@@ -119,7 +123,7 @@ Because each multiGWAS report shows one specific trait at a time, the histogram 
 snpFileList =  list.files(inputDir, pattern=paste0("^(.*(","SNPProfile",").*(png)[^$]*)$"), full.names=T)
 for (snpFile in snpFileList) {
 	cat("![](", snpFile, ")")
-	#cat ("\n")
+	cat ("</p>")
 }
 ```
 
