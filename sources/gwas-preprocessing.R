@@ -117,7 +117,7 @@ convertVCFtoACGTByVCFR <- function (filename, outFilename="") {
 #------------------------------------------------------------------------------
 plinkToVCFFormat <- function (plinkFile, outFile) {
 	#plinkPrefix = strsplit (plinkFile, split="[.]")[[1]][1]
-	cmm = sprintf ("plink --file %s --recode vcf-fid --out %s", plinkFile, outFile)
+	cmm = sprintf ("plink --file %s --allow-extra-chr --recode vcf-fid --out %s", plinkFile, outFile)
 	runCommand (cmm)
 }
 

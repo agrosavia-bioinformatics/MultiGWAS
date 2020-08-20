@@ -493,7 +493,7 @@ dataPreprocessing <- function (genotypeFile, phenotypeFile, config)
 		gwaspToPlinkFormat (genotypeFile, plinkFile)
 
 		# Make plink binary files from text file
-		cmm = paste ("plink --file", plinkFile, "--make-bed", "--out", plinkFile)
+		cmm = paste ("plink --file", plinkFile, "--allow-extra-chr --make-bed", "--out", plinkFile)
 		runCommand (cmm, "log-filtering.log")
 
 		# Make links of no-filtered to filtered files 
@@ -551,7 +551,8 @@ filterByQCFilters <- function (genotypeFile, phenotypeFile, config)
 	plinkFile  = paste0 ("out/", strsplit (basename(genotypeFile), split="[.]")[[1]][1], "-plink")
 	gwaspToPlinkFormat (genotypeFile, plinkFile)
 
-	cmm = paste ("plink --file", plinkFile, "--make-bed", "--out", paste0(plinkFile,"-QC"))
+	#cmm = paste ("plink --file", plinkFile, "--make-bed", "--out", paste0(plinkFile,"-QC"))
+	cmm = paste ("plink --file", plinkFile, "--make-bed --allow-extra-chr", "--out", paste0(plinkFile,"-QC"))
 
 	# Create string for plink command with filters 
 	msgmsg ("Filtering by missingness, MAF, and HWE")
@@ -566,7 +567,7 @@ filterByQCFilters <- function (genotypeFile, phenotypeFile, config)
 
 	# Recode to plink format adjusted for tassel and plink
 	runCommand (cmm, "log-filtering.log" )
-	cmm = sprintf ("plink --bfile %s-QC --recode tab --out %s-QC", plinkFile, plinkFile)
+	cmm = sprintf ("plink --bfile %s-QC --allow-extra-chr --recode tab --out %s-QC", plinkFile, plinkFile)
 	runCommand (cmm, "log-filtering.log")
 
 #	# Check for linkage disequilibrium

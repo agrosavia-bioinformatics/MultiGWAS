@@ -125,7 +125,7 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, ploidy, gwasMo
 
 	# Create chord diagrams
 	msgmsg ("Creating chord diagrams for chromosome vs SNPs...")
-	createChordDiagramSharedSNPs (fileBestScores)
+	#createChordDiagramSharedSNPs (fileBestScores)
 
 	# Call to rmarkdown report
 	createMarkdownReport (config)
@@ -224,6 +224,10 @@ markersManhattanPlots <- function (listOfResultsFile, gwasModel, commonBest, com
 		sharedSNPs       = intersect (commonBest, bestSNPsTool)
 		colorsBlueOrange = c("blue4", "orange3")
 		ylims   = c (0, ceiling (signThresholdScore))
+
+		# Only for Paula data in aguacate
+		gwasResults$CHR = as.numeric (gsub ("LCL|CTG","",gwasResults$CHR, fixed=T))
+
 		manhattan(gwasResults,col = c("orange", "midnightblue"), highlight=sharedSNPs, annotatePval=bestThreshold, annotateTop=F,
 				  suggestiveline=bestThresholdScore, genomewideline=signThresholdScore, main=mainTitle, logp=T, cex=2)
 

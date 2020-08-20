@@ -7,6 +7,6 @@ GENOPLINK=$1
 PHENOTBL=$2
 OUTFILE=$3
 
-plink --file $GENOPLINK --linear --adjust --pheno $PHENOTBL --all-pheno --allow-no-sex --out $OUTFILE
+plink --file $GENOPLINK --allow-extra-chr --linear --adjust --pheno $PHENOTBL --all-pheno --allow-no-sex --out $OUTFILE
 
 #plink --file $GENOPLINK --linear --adjust --pfilter 0.001 --pheno $PHENOTBL --all-pheno --allow-no-sex --out $OUTFILE
