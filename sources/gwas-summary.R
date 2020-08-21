@@ -28,10 +28,10 @@ options (bitmapType="cairo", width=300)
 # Outupt are written to output dir
 #-------------------------------------------------------------
 main <- function () {
+	source ("lglib03.R")
 	options (warn=1)
-	#source ("lglib01.R")
-	source ("gwas-heatmap.R")            # Module with functions to create summaries: tables and venn diagrams
-	source ("gwas-preprocessing.R")      # Module with functions to convert between different genotype formats 
+	source (paste0(HOME,"/sources/gwas-heatmap.R"))            # Module with functions to create summaries: tables and venn diagrams
+	source (paste0(HOME,"/sources/gwas-preprocessing.R"))      # Module with functions to convert between different genotype formats 
 
 	msgmsg ("Main...")
 
@@ -39,9 +39,9 @@ main <- function () {
 	genotypeFile  = "out/filtered-gwasp4-genotype.tbl"
 	phenotypeFile = "out/filtered-gwasp4-phenotype.tbl"
 	outputDir   = "report/"
-	gwasModel    = "Naive"
-	nBest  = 5
-	ploidy = 4
+	gwasModel    = "Full"
+	nBest  = 10
+	ploidy = 2
 
 	createReports (inputDir, genotypeFile, phenotypeFile, 
 				   ploidy, gwasModel, outputDir, nBest)
@@ -54,20 +54,6 @@ main <- function () {
 #   3- 1 Venn diagram of best SNPs
 #   4- 1 Venn diagram of significative SNPs
 #	5- 1 multiplot of 4x4 manhattan and QQ plots
-#-------------------------------------------------------------
-# Only for Manfred's data
-#-------------------------------------------------------------
-reduceSNPNames <- function (listOfResultsFile) {
-	for (filename in listOfResultsFile) {
-		data = read.csv (file=filename, sep="\t", check.names=F)
-		if (grepl ("TASSEL", filename) || grepl ("GWASpoly", filename))
-			data$Marker = gsub ("solcap_snp_","", data$Marker)
-		else
-			data [,"SNP"] = gsub ("solcap_snp_","", data$SNP)
-		#newFilename = paste0 (strsplit (filename,"[.]")[[1]][1], "-new.csv")
-		write.table (file=filename, data, sep="\t", quote=F, row.names=F)
-	}
-}
 #-------------------------------------------------------------
 #-------------------------------------------------------------
 createReports <- function (inputDir, genotypeFile, phenotypeFile, ploidy, gwasModel, outputDir, nBest) 
@@ -89,7 +75,6 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, ploidy, gwasMo
 
 	# Get filenames of results for each of the four GWAS tools
 	listOfResultsFile =  list.files(inputDir, pattern=sprintf ("(^(tool).*(%s).*[.](csv))", gwasModel), full.names=T)
-	reduceSNPNames (listOfResultsFile)
 
 	msgmsg ("Creating table with summary results...")
 	snpTables = markersSummaryTable (listOfResultsFile, gwasModel, nBest)
@@ -125,7 +110,7 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, ploidy, gwasMo
 
 	# Create chord diagrams
 	msgmsg ("Creating chord diagrams for chromosome vs SNPs...")
-	#createChordDiagramSharedSNPs (fileBestScores)
+	createChordDiagramSharedSNPs (fileBestScores)
 
 	# Call to rmarkdown report
 	createMarkdownReport (config)
@@ -226,7 +211,13 @@ markersManhattanPlots <- function (listOfResultsFile, gwasModel, commonBest, com
 		ylims   = c (0, ceiling (signThresholdScore))
 
 		# Only for Paula data in aguacate
-		gwasResults$CHR = as.numeric (gsub ("LCL|CTG","",gwasResults$CHR, fixed=T))
+		#gwasResults$CHR = as.numeric (gsub ("LCL|CTG","",gwasResults$CHR, fixed=T))
+		chrs            = gwasResults$CHR
+		chrs            = as.factor (chrs)
+		levels (chrs)   = 1:length (levels (chrs))
+		write.csv (data.frame (ORIGINAL_CHROM=gwasResults$CHR, NEW_CHROM=chrs), "out-mapped-chromosome-names.csv", quote=F, row.names=F)
+		gwasResults$CHR = as.numeric (chrs)
+		
 
 		manhattan(gwasResults,col = c("orange", "midnightblue"), highlight=sharedSNPs, annotatePval=bestThreshold, annotateTop=F,
 				  suggestiveline=bestThresholdScore, genomewideline=signThresholdScore, main=mainTitle, logp=T, cex=2)
@@ -260,26 +251,28 @@ selectBestModel <- function (data, nBest, tool) {
 		# Reduce to groups of nBest
 		groupsDataSNPs = Reduce (rbind, by(orderedDataSNPs, orderedDataSNPs["MODEL"], head, n=N)); 
 
-		# Add Count of SNPs
-		summ   = data.frame (add_count (groupsDataSNPs, Marker, sort=T)); 
+		# Add Count of SNPs between groups
+		summ   = data.frame (add_count (groupsDataSNPs, Marker, sort=T, name="nSharedSNPs")); 
 
 		# Add count of significatives
-		summSign   = data.frame (add_count (summ [summ$DIFF >0, ], "MODEL"))
+		summSign   = data.frame (add_count (summ [summ$DIFF >0, ], MODEL, name="nSign"))
 
 		# Add count of shared SNPs
-		summMdl = aggregate (x=summ$n, by=list(MODEL=summ$MODEL, GC=summ$GC), 	FUN=sum)
+		summMdl = aggregate (x=summ$nSharedSNPs, by=list(MODEL=summ$MODEL, GC=summ$GC), 	FUN=sum)
+		colnames (summMdl) = c("MODEL", "GC", "SHAREDNSPS")
 
 		# Summ differences
 		#summMdlDiff = aggregate (x=summ$DIFF, by=list(MODEL=summ$MODEL, GC=summ$GC), 	FUN=sum)
 
+		# Add fraction of shared SNPs between all models
 		summMdlSign = cbind (summMdl, nSIGN=0)
 		rownames (summMdlSign) = summMdlSign [,1]
-		summMdlSign [as.character (summSign$MODEL),"nSIGN"] = ifelse(summSign$n==0, 0, summSign$n / sum (summSign$n))
+		summMdlSign [as.character (summSign$MODEL),"nSIGN"] = ifelse(summSign$nSharedSNPs==0, 0, summSign$nSharedSNPs / sum (summSign$nSharedSNPs))
 			
 		# Calculate best model score
 		totalNs     = length (summMdlSign$MODEL) * N
 		scoreGC     = 1 - abs (1-summMdlSign$GC)
-		scoreShared = summMdlSign$x/totalNs  
+		scoreShared = summMdlSign$SHAREDNSPS/totalNs  
 		scoreSign   = summMdlSign$nSIGN 
 
 		modelScore  = scoreGC + scoreShared + scoreSign
@@ -426,7 +419,7 @@ markersSummaryTable <- function (listOfResultsFile, gwasModel, nBest) {
 # Util to print head of data
 # Fast head, for debug only
 #----------------------------------------------------------
-hd <- function (data, m=10,n=10, tool="") {
+view <- function (data, m=10,n=10, tool="") {
 	filename = paste0 ("x",tool,"-", deparse (substitute (data)),".csv")
 	msgmsg (deparse (substitute (data)),": ", dim (data))
 	if (is.null (dim (data)))
@@ -440,7 +433,6 @@ hd <- function (data, m=10,n=10, tool="") {
 
 	write.table (file=filename, data, quote=F, sep="\t", row.names=F)
 }
-hd1 = hd
 #-------------------------------------------------------------
 # Print a log message with the parameter
 #-------------------------------------------------------------
@@ -528,15 +520,25 @@ createChordDiagramSharedSNPs <- function (scoresFile) {
 			mtext ("No chord diagram (without shared SNPs)")
 		}else {
 			chordDiagram(matrixChord, annotationTrack = "grid", directional = -1, direction.type = c("arrows"), # c("diffHeight", "arrows"),
-						 #link.arr.type = "big.arrow", 
-						 grid.col = colorsChord,
-						 preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(matrixChord))))))
+						 grid.col = colorsChord, preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(matrixChord))))))
 
 			# we go back to the first track and customize sector labels
 			circos.track(track.index = 1, panel.fun = function(x, y) {
-					circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
-					facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
-			}, bg.border = NA) # here set bg.border to NA is important
+				xlim = get.cell.meta.data("xlim")
+				xplot = get.cell.meta.data("xplot")
+				ylim = get.cell.meta.data("ylim")
+				sector.name = get.cell.meta.data("sector.index")							 
+
+				#if(abs(xplot[2] - xplot[1]) < 20) {
+				# Check if top or botton for Markers of Chromosomes
+				if(abs(xplot[1]) < 180) 
+					circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), col = "red")
+				 else 
+					circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), col = "blue")
+				}, bg.border = NA) # here set bg.border to NA is important
+
+				mtext ("Markers", side=3, col="red", cex=1.5)
+				mtext ("Chromosomes", side=1, col="blue", cex=1.5)
 		}
 	} # >>>>> local function
 	
@@ -559,7 +561,6 @@ createChordDiagramSharedSNPs <- function (scoresFile) {
 	if (nrow (scores) > 0) {
 		# With shared SNPs
 		tbl       = scores [,c("TOOL","CHROM","SNP")]
-		tbl$CHROM = paste0 ("Chrom_", tbl$CHROM)
 
 		# Group by TOOL and select 3 SNPs for each one
 		#tblr = Reduce (rbind, by (tbl, tbl["TOOL"], head, n=2))
@@ -586,18 +587,25 @@ createChordDiagramSharedSNPs <- function (scoresFile) {
 		# Params for chordDiagram: mat and colors
 		matrixChord = as.matrix (dmat) 
 
-		colorsChrs = setNames (brewer.pal (n=nChrs+3, name="RdBu"), c(chrs, "chXX", "chYY", "chZZ"))
+		colorSNPs <- colorRampPalette(brewer.pal(8, "Set2"))(length(chrs))
+
+		#colorsChrs = setNames (brewer.pal (n=nChrs+3, name="RdBu"), c(chrs, "chXX", "chYY", "chZZ"))
+		colorsChrs = setNames (colorSNPs, c(chrs))
 		colorsSNPs = setNames (rep ("grey", nSNPs), snps)
 		colorsChord = c(colorsChrs, colorsSNPs)
 	}
 
+	funCreateChords <- function () {
+		createChord (matrixChord, colorsChord)
+	}
+
 	# PDF
 	pdf (file=paste0 (outFile, ".pdf"), width=7, height=7)
-		createChord (matrixChord, colorsChord)
+		funCreateChords ()
 	dev.off()
 	#PNG
 	png (file=paste0 (outFile, ".png"), width=5, height=5	, units="in", res=90)
-		createChord (matrixChord, colorsChord)
+		funCreateChords ()
 	dev.off()
 }
 

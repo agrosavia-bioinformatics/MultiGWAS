@@ -1,0 +1,42 @@
+PLINK v1.90b6.12 64-bit (28 Oct 2019)
+Options in effect:
+  --adjust
+  --all-pheno
+  --allow-extra-chr
+  --allow-no-sex
+  --covar out-PCs.eigenvec
+  --file out/filtered-plink-genotype-kinship-plink
+  --linear
+  --out out/tool-PLINK-scores-Full
+  --pheno out/filtered-plink-phenotype.tbl
+
+Hostname: agro
+Working directory: /home/lg/agrosavia/GWAS/MultiGWAS/examples/aguacate/out-Superficie_tronco
+Start time: Fri Aug 21 14:55:43 2020
+
+Random number seed: 1598039743
+14943 MB RAM detected; reserving 7471 MB for main workspace.
+Scanning .ped file... done.
+Performing single-pass .bed write (1570 variants, 91 people).
+--file: out/tool-PLINK-scores-Full-temporary.bed +
+out/tool-PLINK-scores-Full-temporary.bim +
+out/tool-PLINK-scores-Full-temporary.fam written.
+1570 variants loaded from .bim file.
+91 people (0 males, 0 females, 91 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to out/tool-PLINK-scores-Full.nosex .
+91 phenotype values present after --pheno.
+Using 1 thread (no multithreaded calculations invoked).
+--covar: 5 covariates loaded.
+Before main variant filters, 91 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.981942.
+1570 variants and 91 people pass filters and QC.
+Phenotype data is quantitative.
+91 phenotype values present after --pheno.
+Writing linear model association results to
+out/tool-PLINK-scores-Full.TRAIT.assoc.linear ... done.
+--adjust: Genomic inflation est. lambda (based on median chisq) = 1.
+--adjust values (1570 variants) written to
+out/tool-PLINK-scores-Full.TRAIT.assoc.linear.adjusted .
+
+End time: Fri Aug 21 14:55:43 2020

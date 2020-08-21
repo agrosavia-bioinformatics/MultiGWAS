@@ -1,0 +1,30 @@
+PLINK v1.90b6.12 64-bit (28 Oct 2019)
+Options in effect:
+  --allow-extra-chr
+  --file out/filtered-plink-genotype
+  --out out/filtered-tassel-genotype
+  --recode vcf-fid
+
+Hostname: agro
+Working directory: /home/lg/agrosavia/GWAS/MultiGWAS/examples/aguacate/out-Superficie_tronco
+Start time: Fri Aug 21 14:55:43 2020
+
+Random number seed: 1598039743
+14943 MB RAM detected; reserving 7471 MB for main workspace.
+Scanning .ped file... done.
+Performing single-pass .bed write (1570 variants, 100 people).
+--file: out/filtered-tassel-genotype-temporary.bed +
+out/filtered-tassel-genotype-temporary.bim +
+out/filtered-tassel-genotype-temporary.fam written.
+1570 variants loaded from .bim file.
+100 people (0 males, 0 females, 100 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to out/filtered-tassel-genotype.nosex .
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 100 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.982331.
+1570 variants and 100 people pass filters and QC.
+Note: No phenotypes present.
+--recode vcf-fid to out/filtered-tassel-genotype.vcf ... done.
+
+End time: Fri Aug 21 14:55:43 2020

@@ -110,9 +110,9 @@ Chord diagrams are used in MultiGWAS to highlight nearby SNPs found on the same 
 
 Next, we show the chord diagram for the shared SNPs shown in the Venn diagram of the best-ranked SNPs (Section 2.2).
 
-#```{r chordDiagram, fig.align = "center", echo=FALSE, message=FALSE, fig.width=5, fig.height=5, fig.fullwidth=TRUE}
-#knitr::include_graphics (paste0 (inputDir, "/out-multiGWAS-scoresTable-best-chordDiagram.png"))
-#```
+```{r chordDiagram, fig.align = "center", echo=FALSE, message=FALSE, fig.width=5, fig.height=5, fig.fullwidth=TRUE}
+knitr::include_graphics (paste0 (inputDir, "/out-multiGWAS-scoresTable-best-chordDiagram.png"))
+```
 
 # Profiles for common significative SNPs 
 For the common significative SNPs, MultiGWAS provides a figure to visualize each trait by individuals (rows)  and genotypes (columns). At the left, the individuals are grouped in a dendrogram by their genotype. At the  right, there is the name or ID of each individual. At the bottom, the genotypes are ordered from left to right, starting from the major to the minor allele (i.e., AAAA, AAAB, AABB, ABBB, BBBB). At the top, there is a  description of the trait based on a histogram of frequency (top left) and by an assigned color for each  numerical phenotype value using a grayscale (top right). Thus, each individual appears as a colored line  by its phenotype value on its genotype column. For each column, there is a solid cyan line with the mean  of each column and a broken cyan line that indicates how far the cell deviates from the mean.  

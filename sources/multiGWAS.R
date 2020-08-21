@@ -184,14 +184,14 @@ initWorkingEnvironment <- function (configFile) {
 #-------------------------------------------------------------
 moveOutFiles <- function (outputDir, reportDir) 
 {
-	runCommand (sprintf ("cp %s/tool*csv %s", outputDir, reportDir))
-	runCommand (sprintf ("mv %s/out*pdf %s", outputDir, reportDir))
+	runCommand (sprintf ("cp %s/tool*csv %s &> /dev/null", outputDir, reportDir))
+	runCommand (sprintf ("mv %s/out*pdf %s &> /dev/null", outputDir, reportDir))
 	runCommand ("mkdir logs")
-	runCommand ("mv *.log* logs")
-	runCommand ("mv *.errors* logs")
-	system ("mv *PCs* logs", ignore.stdout=T, ignore.stderr=T)
-	system ("mv ../*log* logs", ignore.stdout=T, ignore.stderr=T)
-	system ("mv ../*errors* logs", ignore.stdout=T, ignore.stderr=T)
+	system ("mv *.log* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
+	system ("mv *.errors* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
+	system ("mv *PCs* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
+	system ("mv ../*log* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
+	system ("mv ../*errors* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
 }
 
 
