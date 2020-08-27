@@ -37,6 +37,7 @@ suppressMessages (library (GWASpoly)) #
 suppressMessages (library (parallel)) #
 suppressMessages (library (config))  # For read config file
 NCORES             = detectCores ()
+#NCORES             = 1
 
 # New class for gwaspoly
 setClass ("GWASpolyStruct", slots=c(params="list"), contains="GWASpoly.K")
@@ -46,7 +47,7 @@ options (width=300, warn=1)
 sink (file ("log-warnings-errors.log", open="wt"), type="message")
 source (paste0 (HOME, "/sources/gwas-preprocessing.R"))      # Module with functions to convert between different genotype formats 
 source (paste0 (HOME, "/sources/gwas-summary.R"))            # Module with functions to create summaries: tables and venn diagrams
-source (paste0 (HOME, "/sources/gwas-heatmap.R"))            # Module with functions to create summaries: tables and venn diagrams
+source (paste0 (HOME, "/sources/gwas-heatmap.R"))            # Module with functions to create heatmaps for shared SNPs
 source (paste0 (HOME, "/sources/scripts/script-gwaspoly.R")) # Module with gwaspoly functions
 
 #-------------------------------------------------------------
@@ -184,14 +185,14 @@ initWorkingEnvironment <- function (configFile) {
 #-------------------------------------------------------------
 moveOutFiles <- function (outputDir, reportDir) 
 {
-	runCommand (sprintf ("cp %s/tool*csv %s &> /dev/null", outputDir, reportDir))
-	runCommand (sprintf ("mv %s/out*pdf %s &> /dev/null", outputDir, reportDir))
-	runCommand ("mkdir logs")
-	system ("mv *.log* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
-	system ("mv *.errors* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
-	system ("mv *PCs* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
-	system ("mv ../*log* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
-	system ("mv ../*errors* logs &> /dev/null", ignore.stdout=T, ignore.stderr=T)
+	system (sprintf ("cp %s/tool*csv %s &> /dev/null", outputDir, reportDir))
+	system (sprintf ("mv %s/out*pdf %s > /dev/null 2>&1", outputDir, reportDir))
+	system ("mkdir logs")
+	system ("mv *.log* logs > /dev/null 2>&1", ignore.stdout=T, ignore.stderr=T)
+	system ("mv *.errors* logs > /dev/null 2>&1", ignore.stdout=T, ignore.stderr=T)
+	system ("mv *PCs* logs > /dev/null 2>&1", ignore.stdout=T, ignore.stderr=T)
+	system ("mv ../*log* logs > /dev/null 2>&1", ignore.stdout=T, ignore.stderr=T)
+	system ("mv ../*errors* logs > /dev/null 2>&1", ignore.stdout=T, ignore.stderr=T)
 }
 
 
@@ -365,7 +366,9 @@ runToolShesis <- function (params)
 	# Format data to table with scores and threshold
 	results  = read.table (file=scoresFile, header=T, sep="\t", check.names=T) # TRUE as SHEsis colnames have spaces
 	#pValues  = results[,"P.value"]
-	pValues  = results[,"P.value"]
+
+	# LG: Added 1e-10 to avoid "inf" values in scores
+	pValues  = results[,"P.value"] + 1e-10
 	m        = length (pValues)
 	#pValues  = p.adjust (pValues, meth="BY", m)
 	scores   = -log10 (pValues)
@@ -461,9 +464,15 @@ runToolTassel <- function (params)
 #-------------------------------------------------------------
 dataPreprocessing <- function (genotypeFile, phenotypeFile, config) 
 {
+	# Check for a valid PLINK phenotype (invalid for only 0,1,2,NA)
+	result = checkForValidPlinkPhenotype (phenotypeFile)
+	if (result$value==FALSE) {
+		msgerror (result$info)
+		quit ()
+	}
+
 	# Check if VCF file
 	#genotypeFile = convertGenotypeVCFtoACGT (genotypeFile)
-
 	
 	# Check for VCF, GWASpoly, or k-matrix.
 	# and convert to GWASpoly format
@@ -879,7 +888,12 @@ msgmsg <- function (...)
   cat ("\t>>>>", messages, "\n")
 }
 
-
+msgerror <- function (...) {
+  messages = unlist (list (...))
+  cat ("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+  cat ("\nError: ", messages)
+  cat ("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
+}
 
 #----------------------------------------------------------
 # Util to print head of data

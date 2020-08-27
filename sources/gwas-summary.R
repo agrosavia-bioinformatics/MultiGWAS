@@ -28,7 +28,7 @@ options (bitmapType="cairo", width=300)
 # Outupt are written to output dir
 #-------------------------------------------------------------
 main <- function () {
-	source ("lglib03.R")
+	source ("lglib02.R")
 	options (warn=1)
 	source (paste0(HOME,"/sources/gwas-heatmap.R"))            # Module with functions to create summaries: tables and venn diagrams
 	source (paste0(HOME,"/sources/gwas-preprocessing.R"))      # Module with functions to convert between different genotype formats 
@@ -41,7 +41,7 @@ main <- function () {
 	outputDir   = "report/"
 	gwasModel    = "Full"
 	nBest  = 10
-	ploidy = 2
+	ploidy = 4
 
 	createReports (inputDir, genotypeFile, phenotypeFile, 
 				   ploidy, gwasModel, outputDir, nBest)
@@ -106,7 +106,7 @@ createReports <- function (inputDir, genotypeFile, phenotypeFile, ploidy, gwasMo
 	msgmsg ("Creating SNP heatmaps for the best ranked SNPs...")
 	genoNumericFilename = ACGTToNumericGenotypeFormat (genotypeFile, ploidy)
 
-	createHeatmapForSNPList (outputDir, genotypeFile, genoNumericFilename, phenotypeFile, commonBest)
+	createHeatmapForSNPList (outputDir, genotypeFile, genoNumericFilename, phenotypeFile, commonBest, ploidy)
 
 	# Create chord diagrams
 	msgmsg ("Creating chord diagrams for chromosome vs SNPs...")
@@ -210,7 +210,7 @@ markersManhattanPlots <- function (listOfResultsFile, gwasModel, commonBest, com
 		colorsBlueOrange = c("blue4", "orange3")
 		ylims   = c (0, ceiling (signThresholdScore))
 
-		# Only for Paula data in aguacate
+		# LG: Only for Paula data in aguacate
 		#gwasResults$CHR = as.numeric (gsub ("LCL|CTG","",gwasResults$CHR, fixed=T))
 		chrs            = gwasResults$CHR
 		chrs            = as.factor (chrs)
@@ -219,6 +219,7 @@ markersManhattanPlots <- function (listOfResultsFile, gwasModel, commonBest, com
 		gwasResults$CHR = as.numeric (chrs)
 		
 
+		msgmsg ("...Manhattan for", tool)
 		manhattan(gwasResults,col = c("orange", "midnightblue"), highlight=sharedSNPs, annotatePval=bestThreshold, annotateTop=F,
 				  suggestiveline=bestThresholdScore, genomewideline=signThresholdScore, main=mainTitle, logp=T, cex=2)
 

@@ -1,0 +1,4 @@
+MODEL,GC,SHAREDNSPS,scoreGC,scoreShared,scoreSign,score
+additive,0.831,374,0.831,0.623333333333333,0,1.45433333333333
+general,0.995,270,0.995,0.45,0,1.445
+dominant,0.785,366,0.785,0.61,0,1.395

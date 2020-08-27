@@ -29,6 +29,21 @@ convertVCFToACGTByNGSEP <- function (filename, outFilename="") {
 }
 
 #-------------------------------------------------------------
+# Different routines to check valid data for the different tools
+#-------------------------------------------------------------
+checkForValidPlinkPhenotype <- function (phenotypeFile) {
+	phenotypeValues = read.csv (phenotypeFile)[,2]
+	levelValues = levels (factor(phenotypeValues))
+	if (any (levelValues > 2)) 
+		return (list(value=TRUE,info="")) 
+	else
+		return (list(value=FALSE, info=
+"No valid phenotype for PLINK. If phenotype is quantitative, 
+it contains values other than 1, 2, 0 or missing")) 
+	
+}
+
+#-------------------------------------------------------------
 # Return the format type of genotype
 # Checks if VCF, GWASpoly, or k-matrix.
 #-------------------------------------------------------------

@@ -1,0 +1,30 @@
+PLINK v1.90b6.12 64-bit (28 Oct 2019)
+Options in effect:
+  --allow-extra-chr
+  --file out/filtered-plink-genotype-kinship-plink
+  --out out-PCs
+  --pca 5
+
+Hostname: agro
+Working directory: /home/lg/agrosavia/GWAS-TOOL/MultiGWAS/examples/out-full-tetra-Filters
+Start time: Thu Aug 27 00:54:27 2020
+
+Random number seed: 1598507667
+14943 MB RAM detected; reserving 7471 MB for main workspace.
+Scanning .ped file... done.
+Performing single-pass .bed write (1674 variants, 85 people).
+--file: out-PCs-temporary.bed + out-PCs-temporary.bim + out-PCs-temporary.fam
+written.
+1674 variants loaded from .bim file.
+85 people (0 males, 0 females, 85 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to out-PCs.nosex .
+Using up to 8 threads (change this with --threads).
+Before main variant filters, 85 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.966688.
+1674 variants and 85 people pass filters and QC.
+Note: No phenotypes present.
+Relationship matrix calculation complete.
+--pca: Results saved to out-PCs.eigenval and out-PCs.eigenvec .
+
+End time: Thu Aug 27 00:54:27 2020
