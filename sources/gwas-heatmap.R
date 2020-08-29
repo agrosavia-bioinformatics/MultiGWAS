@@ -8,24 +8,23 @@ suppressMessages (library (gplots))
 # Main
 #----------------------------------------------------------
 main <- function () {
+	source ("lglib03.R")
+	library ("parallel")
 	args = commandArgs (trailingOnly=T)
 
-	genoFileACGT <- "geno-ACGT.csv"
-	genoFileNUM  <- "geno-NUM.csv"
-	phenoFile    <- "pheno.csv"
-	snpList      <- c ("c1_8019", "c2_21314")         # SNPs a visualizar
-	createHeatmapForSNPList ("./",genoFileACGT, genoFileNUM, phenoFile, snpList) 
+	genoFileACGT <- "out/filtered-gwasp4-genotype.tbl"
+	genoFileNUM  <- "out/filtered-gwasp4-genotype-NUM.tbl"
+	phenoFile    <- "out/filtered-gwasp4-phenotype.tbl"
+	snpList      <- c("SLCL|CTG6829_10609")
+	ploidy       <- 2
+	createHeatmapForSNPList ("./",genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy) 
 }
 
 #----------------------------------------------------------
 # create SNP profiles for a list of SNPS
 #----------------------------------------------------------
 createHeatmapForSNPList <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy) {
-	#msg ("Genotype ACGT : ", genoFileACGT)
-	#msg ("Genotype NUM  : ", genoFileNUM)
-	#msg ("Phenotype     : ", phenoFile)
-	#message ("SNPs:         : ", snpList)
-
+	message (paste (outputDir, genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy, sep="\n")) 
 	outName = paste0 (outputDir, "/out-SNPProfile") 
 
 	pdfHeatMap <- function (snp) {
@@ -52,7 +51,6 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	phenoValues = phenotype [,2]
 	trait       = colnames (phenotype) [2]
 
-
 	# Get samples for marker in both matrices: Numeric and ACGT
 	samplesMarker          = t(genotypeNUMERIC[genotypeNUMERIC[,1]==snpId,])
 	samplesMarkerMatrixNUM = as.matrix(samplesMarker[-1:-3,])
@@ -60,14 +58,13 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	samplesMarker           = t(genotypeACGT[genotypeACGT[,1]==snpId,])
 	samplesMarkerMatrixACGT = as.matrix(samplesMarker[-1:-3,])
 
-	# 
+	# Count genotype types
 	one.hot<-function(sqnce, alphabet){
 	  y<-unlist(strsplit(sqnce,""))
 	  sapply(y,function(x){match(alphabet,x,nomatch=0)})
 	}
 
-	if (ploidy==4) alphabet_AA = c("0","1","2","3","4")
-	else           alphabet_AA = c("0","1","2") 
+	alphabet_AA = as.character (0:ploidy)
 
 	c           <- t(one.hot (samplesMarkerMatrixNUM, alphabet = alphabet_AA))
 	names(c)    <- names(samplesMarkerMatrixNUM)
@@ -75,10 +72,7 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	e$Name      <- row.names(samplesMarkerMatrixNUM)
 	genoxfeno_2 <- subset(e,e$Name%in%phenoNames)
 
-	if (ploidy==4)
-		genoxfeno_3 <- genoxfeno_2[,1:5]*phenoValues
-	else
-		genoxfeno_3 <- genoxfeno_2[,1:3]*phenoValues
+	genoxfeno_3 <- genoxfeno_2[,1:(ploidy+1)]*phenoValues
 
 	# Remove rows with NAs from genoxfeno_3 
 	g3NAs                 = genoxfeno_3
@@ -88,27 +82,20 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 	rownames(genoxfenov4) = rownames (g3noNAs)
 
 	data_geno_NUM_ACGT<-data.frame(samplesMarkerMatrixNUM,samplesMarkerMatrixACGT)
-	
-	gen_0 <- subset (data_geno_NUM_ACGT, samplesMarkerMatrixNUM=="0",select = samplesMarkerMatrixACGT)
-	gen_1 <- subset (data_geno_NUM_ACGT, samplesMarkerMatrixNUM=="1",select = samplesMarkerMatrixACGT)
-	gen_2 <- subset (data_geno_NUM_ACGT, samplesMarkerMatrixNUM=="2",select = samplesMarkerMatrixACGT)
-
-	g0    <- as.character (gen_0$samplesMarkerMatrixACGT[1])    
-	g1    <- as.character (gen_1$samplesMarkerMatrixACGT[1])
-	g2    <- as.character (gen_2$samplesMarkerMatrixACGT[1])
-
-	if (ploidy==4) {
-		gen_3 <- subset (data_geno_NUM_ACGT, samplesMarkerMatrixNUM=="3",select = samplesMarkerMatrixACGT)
-		gen_4 <- subset (data_geno_NUM_ACGT, samplesMarkerMatrixNUM=="4",select = samplesMarkerMatrixACGT)
-
-		g3    <- as.character (gen_3$samplesMarkerMatrixACGT[1])
-		g4    <- as.character (gen_4$samplesMarkerMatrixACGT[1])
-		colnames(genoxfenov4)<-c(g0,g1,g2,g3,g4)
-	}else
-		colnames(genoxfenov4)<-c(g0,g1,g2)
 
 
-	my_palette <- colorRampPalette(c("white", "blue", "darkblue", "darkred"))(n = 100)
+	# Get genotype names (e.g AAAA,..,AAGG,...,GGGG)
+	namesGen = c()
+	for (i in 0:ploidy) {
+		gen = subset (data_geno_NUM_ACGT, samplesMarkerMatrixNUM==i,select = samplesMarkerMatrixACGT)
+		g   = as.character (gen$samplesMarkerMatrixACGT[1])    
+		namesGen = c(namesGen, g)
+	}
+	colnames(genoxfenov4) = namesGen
+
+	#my_palette <- colorRampPalette(c("white", "blue", "darkblue", "darkred"))(n = 100)
+	#my_palette <- colorRampPalette(c("white", "blue", "darkblue", "darkred"))(n = 100)
+	my_palette <- colorRampPalette(c("black", "blue", "red"))(n = 50)
 	lmat <- rbind(c(5,4), c(2,3), c(2,1))
 	lhei <- c(12,0.1,32)
 	lwid <- c(3,9)
@@ -120,10 +107,27 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 
 	# Function that call heatmap.2 (only to save code)
 	fun_heatmap <- function () {
-		hmap = heatmap.2(genoxfenov4,dendrogram = "row",reorderfun=function(snpId, w) reorder(snpId, w, agglo.FUN = mean),
-				  Colv=FALSE,adjCol = c(NA,0),key=TRUE,srtCol=360,
-				  col=my_palette,cexCol = 1,lmat=lmat,lhei=lhei, lwid=lwid, extrafun=myplot, 
-				  key.xlab=paste0 ("Value of ", trait), xlab=snpId, key.title="Color Key")
+		hmap = heatmap.2(genoxfenov4,
+						 #cellnote=genoxfenov4,
+						 dendrogram = "row",
+						 reorderfun=function(snpId, w) reorder(snpId, w, agglo.FUN = mean),
+						 Colv=FALSE,
+						 adjCol = c(NA,0),
+						 key=TRUE,
+						 srtCol=360,
+						 col=my_palette,
+						 cexCol = 1,
+						 lmat=lmat,
+						 lhei=lhei, 
+						 lwid=lwid, 
+						 extrafun=myplot,
+						 key.xlab=paste0 ("Value of ", trait), 
+						 xlab=snpId, key.title="Color Key",
+						 colsep=c(0:ploidy+1),
+						 rowsep=c(0:nrow(genoxfenov4)),
+		                 sepcolor = "gray",
+						 sepwidth = c(0.001,0.001)
+						 )
 	}
 
 	outName = paste0 (outputDir, "/out-SNPProfile") 

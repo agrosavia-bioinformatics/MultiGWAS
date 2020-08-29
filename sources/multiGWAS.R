@@ -93,27 +93,6 @@ main <- function (args)
 	msg ("Moving files to output folders...")
 	moveOutFiles (config$outputDir, config$reportDir)
 
-	# Call to rmarkdown report
-	#createMarkdownReport (config)
-}
-
-#-------------------------------------------------------------
-# Create Rmkardown report
-#-------------------------------------------------------------
-createMarkdownReport  <- function (config) {
-	msg ("Creating html rmarkdown report...")
-	outputFile = paste0 (config$workingDir, "/multiGWAS-report.html") 
-	title      = paste0 ("MultiGWAS report for ", config$gwasModel, " GWAS model")
-
-
-	# Create html with embbeded images (using javascrips) for Java WebView
-	rmarkdown::render (paste0(HOME,"/sources/gwas-markdown.Rmd"), output_file=outputFile, output_format="html_document", 
-					   params=list (workingDir=config$workingDir, reportTitle=title, nBest=config$nBest), quiet=T)
-
-	# Create html with external images (using subfolders) for Java JEditorPane
-	#rmarkdown::render (paste0(HOME,"/sources/gwas-markdown.Rmd"), output_file=outputFile, 
-	#				   output_format="html_document", output_options=list(self_contained=F),
-	#				   params=list (workingDir=config$workingDir, reportTitle=title, nBest=config$nBest), quiet=T)
 }
 
 #-------------------------------------------------------------
@@ -491,6 +470,7 @@ dataPreprocessing <- function (genotypeFile, phenotypeFile, config)
 		filtered = filterByQCFilters (common$genotypeFile, common$phenotypeFile, config)
 		genotypeFile  = filtered$genotypeFile
 		phenotypeFile = filtered$phenotypeFile
+
 	}else {
 		msgmsg ("Without filters")
 		# Create GWASpoly files
@@ -610,12 +590,12 @@ filterByQCFilters <- function (genotypeFile, phenotypeFile, config)
 	# Filter genotype (.tbl) with geno names from QC filters 
 	genoAll  = read.csv (genotypeFile, header=T, check.names=F)
 	rownames (genoAll) = genoAll [,1]
-	genoFiltered <- genoAll [filteredMarkers,]
+	filteredColumns = c (colnames (genoAll)[1:3], filteredSamples)
+	genoFiltered <- genoAll [filteredMarkers, filteredColumns]
 
 	msgmsg("Writting geno/pheno filtered by MAF, Missing, HWE...")
 	outGenoFile  <- "out/filtered-gwasp4-genotype.tbl"
 	outPhenoFile <- "out/filtered-gwasp4-phenotype.tbl"
-
 	write.table (file=outGenoFile, genoFiltered, row.names=F, quote=F, sep=",")
 	write.table (file=outPhenoFile, phenoFiltered, row.names=F, quote=F, sep=",")
 
@@ -899,17 +879,21 @@ msgerror <- function (...) {
 # Util to print head of data
 # Fast head, for debug only
 #----------------------------------------------------------
-hd <- function (data, m=10,n=10) {
-	#msgmsg (deparse (substitute (data)),":")
-	msgmsg (deparse (substitute (data)),": ", dim (data))
-	if (is.null (dim (data)))
-		print (data [1:10])
-	else if (ncol (data) < 10) 
-		print (data[1:m,])
-	else if (nrow (data) < 10)
-		print (data[,1:n])
-	else 
-		print (data [1:m, 1:n])
+view <- function (data, n=5,m=6) {
+	name = paste (deparse (substitute (data)),":  ")
+	if (is.null (dim (data))) {
+		dimensions = paste (length (data))
+		message (name, "(", paste0 (dimensions),")")
+		if (length (data) < 6) n = length(data)
+		print (data[1:n])
+	}else {
+		dimensions = paste0 (unlist (dim (data)),sep=c(" x ",""))
+		message (name, "(", paste0 (dimensions),")")
+		if (nrow (data) < 5) n = nrow(data)
+		if (ncol (data) < 6) m = ncol(data)
+		print (data[1:n,1:m])
+	}
+	#write.csv (data, paste0("x-", filename, ".csv"), quote=F, row.names=F)
 }
 
 #----------------------------------------------------------
