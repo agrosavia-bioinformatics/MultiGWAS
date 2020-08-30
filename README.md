@@ -69,7 +69,9 @@ Open a Linux console (or terminal) and enter the following instructions:
 ```
 
 # Executing the MultiGWAS tool
-MultiGWAS can be executed by either a command line interface (CLI) developed in R or a graphical user interface (GUI) developed in Java.
+The user creates a configuration file with the main parameters for running GWAS (e.g. genotype and phenotype file names, ploidy, quality filter values). Then, he runs the GWAS analysis. When it is finished, the results are written to a folder called "out-XXXXX", where "XXXXX" is the name of the previously created configuration file. Inside this forlder is the main report in an HTML file called "multiGWAS-report.html" that can be opened with any web browser (e.g. chrome, firefox).
+
+Detailed instrucctions are shown in section  [Executing the MultiGWAS tool](#executing-the-multigwas-tool).
 ## Using the command line interface
   - Open a Linux console
   - Create a new folder (e.g. test)
