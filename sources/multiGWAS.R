@@ -755,7 +755,7 @@ filterByMAFCommonNames <- function(genotypeFile, phenotypeFile, ploidy){
 	markers <- as.matrix(geno[,-(1:3)])
 	rownames(markers) <- geno[,1]
 	
-	tmp     <- apply(markers,1,get.ref)
+	tmp     <- apply(markers,1,getReferenceAllele)
 	map     <- data.frame(Marker=geno[,1],Chrom=factor(geno[,2],ordered=T),Position=geno[,3],stringsAsFactors=F)
 	map$Ref <- tmp[1,]
 	map$Alt <- tmp[2,]

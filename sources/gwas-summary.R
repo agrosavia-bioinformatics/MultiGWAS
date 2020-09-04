@@ -210,14 +210,20 @@ markersManhattanPlots <- function (listOfResultsFile, gwasModel, commonBest, com
 		colorsBlueOrange = c("blue4", "orange3")
 		ylims   = c (0, ceiling (signThresholdScore))
 
-		# LG: Only for Paula data in aguacate
-		#gwasResults$CHR = as.numeric (gsub ("LCL|CTG","",gwasResults$CHR, fixed=T))
-		chrs            = gwasResults$CHR
-		chrs            = as.factor (chrs)
-		levels (chrs)   = 1:length (levels (chrs))
-		write.csv (data.frame (ORIGINAL_CHROM=gwasResults$CHR, NEW_CHROM=chrs), "out-mapped-chromosome-names.csv", quote=F, row.names=F)
-		gwasResults$CHR = as.numeric (chrs)
-		
+		# Check if all chromosome names are numeric
+		anyNonNumericChrom <- function (chrs) {
+			suppressWarnings (any (is.na (as.numeric (chrs))))
+		}
+
+		# if non-numeric Chromosome names, convert to numeric using factors
+		chrs = as.character (gwasResults$CHR)
+		if  (anyNonNumericChrom (chrs)==TRUE) {
+			msgmsg ("!!!Mapping chromosome names to numbers (see 'out-mapped-chromosome-names.csv') file...")
+			chrs            = as.factor (chrs)
+			levels (chrs)   = 1:length (levels (chrs))
+			write.csv (data.frame (ORIGINAL_CHROM=gwasResults$CHR, NEW_CHROM=chrs), "out-mapped-chromosome-names.csv", quote=F, row.names=F)
+			gwasResults$CHR = as.numeric (chrs)
+		}
 
 		msgmsg ("...Manhattan for", tool)
 		manhattan(gwasResults,col = c("orange", "midnightblue"), highlight=sharedSNPs, annotatePval=bestThreshold, annotateTop=F,
