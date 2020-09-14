@@ -15,8 +15,8 @@ main <- function () {
 	genoFileACGT <- "out/filtered-gwasp4-genotype.tbl"
 	genoFileNUM  <- "out/filtered-gwasp4-genotype-NUM.tbl"
 	phenoFile    <- "out/filtered-gwasp4-phenotype.tbl"
-	snpList      <- c("SLCL|CTG6829_10609")
-	ploidy       <- 2
+	snpList      <- c("c2_51250","c1_7770")
+	ploidy       <- 4
 	createHeatmapForSNPList ("./",genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy) 
 }
 
@@ -123,10 +123,10 @@ createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile
 						 extrafun=myplot,
 						 key.xlab=paste0 ("Value of ", trait), 
 						 xlab=snpId, key.title="Color Key",
-						 colsep=c(0:ploidy+1),
-						 rowsep=c(0:nrow(genoxfenov4)),
-		                 sepcolor = "gray",
-						 sepwidth = c(0.001,0.001)
+						 #rowsep=c(0:nrow(genoxfenov4)),
+		                 #sepcolor = "red",
+						 #sepwidth = c(0.001,0.001)
+						 colsep=c(0:ploidy+1)
 						 )
 	}
 
