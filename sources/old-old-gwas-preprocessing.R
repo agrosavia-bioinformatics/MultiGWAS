@@ -17,21 +17,6 @@ suppressMessages (library (stringi))
 formatsLogFile="log-formats.log"
 
 HOME = Sys.getenv ("MULTIGWAS_HOME")
-#----------------------------------------------------------
-# Main
-#----------------------------------------------------------
-main <- function () 
-{
-	source ("lglib03.R")
-	options (width=300)
-	args = commandArgs (trailingOnly=T)
-
-	inputFilename  = args [1]
-
-	#convertVCFToACGTByNGSEP (inputFilename)
-	ACGTToNumericGenotypeFormat (inputFilename, 4)
-}
-
 #------------------------------------------------------------------------------
 # Convert VCF to ACGT files using "NGSEP"
 #------------------------------------------------------------------------------
@@ -224,41 +209,17 @@ gwaspToPlinkFormat <- function (genotypeFile, plinkFile) {
 
 }
 #----------------------------------------------------------
-# Get ref/alt alleles for SNPs
-# Replaces the GWASpoly ref.alt that get random ref/alt alleles
+# Getting ref/alt alleles for SNPs
 #----------------------------------------------------------
 bases <- c("A","C","G","T")
-getReferenceAllele <- function (x) {
-	y <- paste(na.omit(x),collapse="")
-	ans <- apply(array(bases),1,function(z,y){length(grep(z,y,fixed=T))},y)
-	if (sum(ans)>2) {stop("Error in genotype matrix: More than 2 alleles")}
-	if (sum(ans)==2) {
-		ref.alt <- bases [which (ans==1)]
-		countAllele1 = stri_count (y, fixed=ref.alt[1])
-		countAllele2 = stri_count (y, fixed=ref.alt[2])
-		if (countAllele2 > countAllele1)
-			ref.alt = c(ref.alt[2],ref.alt[1])
-	}
-	if (sum(ans)==1) {ref.alt <- c(bases[which(ans==1)],NA)}
-
-	return (ref.alt)
-}
-
-
-#----------------------------------------------------------
-# Wrong: get random get/ref alleles
-#----------------------------------------------------------
 get.ref <- function(x) 
 {
 	y <- paste(na.omit(x),collapse="")
-	print (y);
 	ans <- apply(array(bases),1,function(z,y){length(grep(z,y,fixed=T))},y)
-	print (ans)
 	if (sum(ans)>2) {stop("Error in genotype matrix: More than 2 alleles")}
 	if (sum(ans)==2) {ref.alt <- bases[which(ans==1)]}
 	if (sum(ans)==1) {ref.alt <- c(bases[which(ans==1)],NA)}
 
-	print (ref.alt)
 	return(ref.alt)
 }
 
@@ -297,8 +258,7 @@ createPlinkPedFromGwaspolyGenotype <- function (gwaspGenoFile, plinkFile)
 	samplesIds        <- colnames (alleles)
 
 	# Getting Ref/Alt Alleles
-	#refAltAlleles <- apply(alleles,1,get.ref)
-	refAltAlleles <- apply(alleles,1,getReferenceAllele)
+	refAltAlleles <- apply(alleles,1,get.ref)
 
 	# Converting tetra to diplo
 	allelesDiplo  <- tetraToDiplos (genotype[,-c(2,3)], refAltAlleles)
@@ -326,8 +286,7 @@ gwaspTetraToDiploGenotype <- function (genotypeFile)
 	samplesIds        <- colnames (alleles)
 
 	#msgmsg ("    >>>> Getting Ref/Alt Alleles...")
-	#refAltAlleles <- apply(alleles,1,get.ref)
-	refAltAlleles <- apply(alleles,1,getReferenceAllele)
+	refAltAlleles <- apply(alleles,1,get.ref)
 
 	##msgmsg ("    >>>> Converting tetra to diplo")
 	diplosMat  <- tetraToDiplos (genotype[,-c(2,3)], refAltAlleles)
@@ -418,72 +377,44 @@ tetraToDiplos <- function (allelesMat, refAltAlleles)
 	}
 	return (diplosMat)
 }
-
-#----------------------------------------------------------
-# Convert gwaspoly ACGT to Genodive numeric format (A:1, C:2, G:3, T:4)
-#----------------------------------------------------------
-convertGWASpolyToGenodiveACGTGenotypeFormat <- function (genotypeFile) 
-{
-	NCORES = detectCores()
-	geno   = read.csv (file=genotypeFile, header=T, check.names=F)
-
-	markers           = as.matrix(geno[,-(1:3)])
-	sampleNames       = colnames (geno[,-(1:3)])
-	rownames(markers) = geno[,1]
-
-	#>>>> Convert one row from ACGT to Num. x=RefAllele|...Alleles...
-	acgtToNum <- function(ACGTList){
-		changeGenotype <- function (ACGT) {
-			newGeno = gsub ("A","1",gsub ("C","2",gsub("G","3",gsub("T","4",ACGT))))
-		}
-		numbersList = sapply (ACGTList, changeGenotype)
-	}
-	
-	# Convert All ACGT matrix to Num
-	ACGTList       = mclapply(seq(ncol(markers)), function(i) markers[,i], mc.cores=NCORES)
-	numList        = mclapply(ACGTList, acgtToNum, mc.cores=NCORES)
-
-	M = as.data.frame (numList,col.names=colnames (markers), check.names=F)
-
-	newGeno = data.frame (Markers=geno[,1], M, check.names=F) # Check=FALSE names but not row names
-	newName = paste0 (strsplit (genotypeFile, split="[.]")[[1]][1], "-GENODIVE.csv")
-	write.csv (file=newName, newGeno, quote=F, row.names=F)
-
-	return (newName)
-}
-
 #----------------------------------------------------------
 # Convert gwaspoly genotype from ACGT to numeric format
 #----------------------------------------------------------
 ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy) 
 {
-	NCORES = detectCores()
 	geno = read.csv (file=genotypeFile, header=T, check.names=F)
 	map <- data.frame(Marker=geno[,1],Chrom=factor(geno[,2],ordered=T),Position=geno[,3],stringsAsFactors=F)
 
-	markers           = as.matrix(geno[,-(1:3)])
-	sampleNames       = colnames (geno[,-(1:3)])
-	rownames(markers) = geno[,1]
-			
-	tmp <- apply(markers,1,getReferenceAllele)
+	markers <<- as.matrix(geno[,-(1:3)])
+	sampleNames <<- colnames (geno[,-(1:3)])
+	rownames(markers) <- geno[,1]
+	tmp <- apply(markers,1,get.ref)
 	map$Ref <- tmp[1,]
 	map$Alt <- tmp[2,]
 
-	#>>>> Convert all genotypes of a marker row from ACGT to Num
+	#>>>> Convert one row from ACGT to Num. x=RefAllele|...Alleles...
 	acgtToNum <- function(x){
-		x   <- unlist (x)
-		y   <- gregexpr(pattern=x[1],text=x[-1],fixed=T)
-		ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))
-		return(ans)
+			x   <- unlist (x)
+			y   <- gregexpr(pattern=x[1],text=x[-1],fixed=T)
+			ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))
+			return(ans)
 	}
 	
+	#>>>>
 	# Convert All ACGT matrix to Num
 	matRefMarkers   = cbind(map$Ref,markers)
 	matTransposed   = t(matRefMarkers)
-	ACGTList        = mclapply(seq_len(ncol(matTransposed)), function(i) matTransposed[,i],mc.cores=NCORES)
-	numList         = mclapply(ACGTList, acgtToNum, mc.cores=NCORES)
+	ACGTList        = mclapply(seq_len(ncol(matTransposed)), function(i) matTransposed[,i],mc.cores=detectCores())
+	numList         = mclapply(ACGTList, acgtToNum, mc.cores=detectCores())
 
 	M = as.data.frame (numList,col.names=rownames (matRefMarkers))
+	#M <- apply(cbind(map$Ref,markers),1, acgtToNum)
+	#M <- apply(cbind(map$Ref,markers),1,function(x){
+	#	y <- gregexpr(pattern=x[1],text=x[-1],fixed=T)  
+	#	ans <- as.integer(lapply(y,function(z){ifelse(z[1]<0,ploidy,ploidy-length(z))}))	
+	#	return(ans)
+	#	})
+
 	tM =  (t(M))
 	colnames (tM) = sampleNames
 
@@ -673,6 +604,22 @@ hd1 <- function (data, n=10,m=10) {
 }
 
 #----------------------------------------------------------
+# Main
+#----------------------------------------------------------
+main <- function () 
+{
+	args = c ("filtered-gwasp4-phenotype.tbl", "filtered-plink-genotype.ped")
+
+	pheno  = args [1]
+	geno   = args [2]
+
+	gwaspToTasselPhenotype (pheno, "filt-tassel-pheno.tbl")
+	plinkToVCFFormat (geno, "filt-tassel-geno")
+
+}
+#----------------------------------------------------------
 #----------------------------------------------------------
 #main ()
+
+
 

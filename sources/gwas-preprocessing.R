@@ -4,6 +4,8 @@
 # AUTHOR: Luis Garreta (lgarreta@agrosavia.co)
 # DATE  : 12/Feb/2020
 # LOG   : 
+	# r1.3: Added from AABB to Num, from ACGT to Genodive|:wq
+	# r1.2: Modified get.alt
 	# r1.1: VCF to ACGT functions
 	# r1.0: Working tetra and diplo
 	# r1.0: Used by MultiGWAS tool
@@ -20,6 +22,7 @@ HOME = Sys.getenv ("MULTIGWAS_HOME")
 #----------------------------------------------------------
 # Main
 #----------------------------------------------------------
+#msgmsg = message
 main <- function () 
 {
 	source ("lglib03.R")
@@ -29,7 +32,7 @@ main <- function ()
 	inputFilename  = args [1]
 
 	#convertVCFToACGTByNGSEP (inputFilename)
-	ACGTToNumericGenotypeFormat (inputFilename, 4)
+	convertAABBGWASpolyToNumericFormat (inputFilename)
 }
 
 #------------------------------------------------------------------------------
@@ -420,9 +423,35 @@ tetraToDiplos <- function (allelesMat, refAltAlleles)
 }
 
 #----------------------------------------------------------
+# Convert AABB to 0,1,2,3,4
+#----------------------------------------------------------
+convertAABBGWASpolyToNumericFormat <- function (genotypeFile) 
+{
+	geno   = read.csv (file=genotypeFile, check.names=F)[,1:13]
+
+	allelesAB           = as.matrix(geno[,-(1:3)])
+	map                 = geno [,1:3]
+	sampleNames         = colnames (geno[,-(1:3)])
+	markerNames         = geno [1,]
+	rownames(allelesAB) = geno[,1]
+
+	setNum <- function (allelesABMarker) {
+		allelesNumMarker = sapply (allelesABMarker, stri_count, fixed="B")
+	}
+
+	allelesNumList = unlist (mclapply (allelesAB,  setNum))
+	allelesMat     = matrix (allelesNumList, nrow=nrow(allelesAB), ncol=ncol(allelesAB))
+	colnames (allelesMat) = colnames (allelesAB)
+
+	newGeno = cbind (map, allelesMat)
+	newName = gsub (".csv", "-NUM.csv", genotypeFile)
+	write.csv (newGeno, newName, quote=F, row.names=F)
+}
+
+#----------------------------------------------------------
 # Convert gwaspoly ACGT to Genodive numeric format (A:1, C:2, G:3, T:4)
 #----------------------------------------------------------
-convertGWASpolyToGenodiveACGTGenotypeFormat <- function (genotypeFile) 
+convertACGTGWASpolyToGenodiveACGTGenotypeFormat <- function (genotypeFile) 
 {
 	NCORES = detectCores()
 	geno   = read.csv (file=genotypeFile, header=T, check.names=F)
@@ -431,7 +460,7 @@ convertGWASpolyToGenodiveACGTGenotypeFormat <- function (genotypeFile)
 	sampleNames       = colnames (geno[,-(1:3)])
 	rownames(markers) = geno[,1]
 
-	#>>>> Convert one row from ACGT to Num. x=RefAllele|...Alleles...
+#>>>> Convert one row from ACGT to Num. x=RefAllele|...Alleles...
 	acgtToNum <- function(ACGTList){
 		changeGenotype <- function (ACGT) {
 			newGeno = gsub ("A","1",gsub ("C","2",gsub("G","3",gsub("T","4",ACGT))))
@@ -675,4 +704,6 @@ hd1 <- function (data, n=10,m=10) {
 #----------------------------------------------------------
 #----------------------------------------------------------
 #main ()
+
+
 
