@@ -41,8 +41,7 @@ main <- function () {
 #-------------------------------------------------------------
 # Control population structure using default Kinship and PCs
 #-------------------------------------------------------------
-controlPopulationStratification <- function (data1, gwasModel) 
-{
+controlPopulationStratification <- function (data1, gwasModel) {
 	msgmsg ();msgmsg("Controlling populations structure...")
 
 	if (gwasModel=="Naive") {
@@ -68,8 +67,7 @@ controlPopulationStratification <- function (data1, gwasModel)
 #-------------------------------------------------------------
 # GWAS execution
 #-------------------------------------------------------------
-runGwaspoly <- function (data2, params, NCORES) 
-{
+runGwaspoly <- function (data2, params, NCORES) {
 	gwasModel        = params$gwasModel
 	snpModels        = params$snpModels
 	correctionMethod = params$correctionMethod
@@ -92,8 +90,7 @@ runGwaspoly <- function (data2, params, NCORES)
 #-------------------------------------------------------------
 # Plot results
 #-------------------------------------------------------------
-showResults <- function (data3, testModels, trait, gwasModel, phenotypeFile, ploidy) 
-{
+showResults <- function (data3, testModels, trait, gwasModel, phenotypeFile, ploidy) {
 	msgmsg ();msgmsg("Writing GWASpoly results...")
 	#outFile       = paste0 ("out/tool-GWASpoly-scores-", gwasModel)
 	#scoresFile    = paste0 (outFile,".csv")
@@ -139,8 +136,7 @@ plotMahattanQQ <- function (plotFile, testModels, data5, trait, data3, gwasModel
 #-------------------------------------------------------------
 # Extracts significant QTL
 #-------------------------------------------------------------
-getQTLGWASpoly <- function(data,gwasModel, ploidy, traits=NULL,models=NULL) 
-{
+getQTLGWASpoly <- function(data,gwasModel, ploidy, traits=NULL,models=NULL) {
 	stopifnot(inherits(data,"GWASpoly.thresh"))
 
 	if (is.null(traits)) traits <- names(data@scores)
@@ -190,8 +186,7 @@ getQTLGWASpoly <- function(data,gwasModel, ploidy, traits=NULL,models=NULL)
 # Calculate the inflation factor from -log10 values
 # It can fire warning, here they are hidign
 #-------------------------------------------------------------
-calculateInflationFactor <- function (scores)
-{
+calculateInflationFactor <- function (scores) {
 	oldw <- getOption("warn")
 	options(warn = -1)
 
@@ -213,8 +208,7 @@ calculateInflationFactor <- function (scores)
 #-------------------------------------------------------------
 # QQ plot
 #-------------------------------------------------------------
-qqPlot <- function(data,trait,model,cex=1,filename=NULL) 
-{
+qqPlot <- function(data,trait,model,cex=1,filename=NULL) {
 	stopifnot(inherits(data,"GWASpoly.fitted"))
 	traits <- names(data@scores)
 
@@ -244,8 +238,7 @@ qqPlot <- function(data,trait,model,cex=1,filename=NULL)
 #-------------------------------------------------------------
 # Read input genotype and genotype (format: "numeric", "AB", or "ACGT")
 #-------------------------------------------------------------
-initGWAS <- function (phenotypeFile, genotypeFile, ploidy, format="ACGT") 
-{
+initGWAS <- function (phenotypeFile, genotypeFile, ploidy, format="ACGT") {
 	msgmsg ();msgmsg("Initializing GWAS...");msgmsg ()
 
 	data1 <- read.GWASpoly (ploidy = ploidy, pheno.file = phenotypeFile, 
@@ -263,8 +256,7 @@ addLabel <- function (filename, label)  {
 }
 #-------------------------------------------------------------
 #-------------------------------------------------------------
-msgmsg <- function (...) 
-{
+msgmsg <- function (...) {
   messages = unlist (list (...))
   cat ("\t>>>>", messages, "\n")
 }

@@ -356,7 +356,7 @@ impute.mode <- function(x) {
 #----------------------------------------------------------
 # Transform table genotype to SHEsis genotype format
 #----------------------------------------------------------
-gwaspToShesisGenoPheno <- function (genotypeFile, phenotypeFile, ploidy) 
+old_gwaspToShesisGenoPheno <- function (genotypeFile, phenotypeFile, ploidy) 
 {
 	msgmsg ("    >>>> Writting gwasp to shesis genopheno...")
 	sep <- function (allele) {
