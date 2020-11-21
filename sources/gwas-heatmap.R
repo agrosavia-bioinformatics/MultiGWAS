@@ -8,14 +8,13 @@ suppressMessages (library (gplots))
 # Main
 #----------------------------------------------------------
 main <- function () {
-	source ("lglib03.R")
 	library ("parallel")
 	args = commandArgs (trailingOnly=T)
 
 	genoFileACGT <- "out/filtered-gwasp4-genotype.tbl"
 	genoFileNUM  <- "out/filtered-gwasp4-genotype-NUM.tbl"
 	phenoFile    <- "out/filtered-gwasp4-phenotype.tbl"
-	snpList      <- c("c2_51250","c1_7770")
+	snpList      <- c("c2_51250","c1_7770", "c1_2978")
 	ploidy       <- 4
 	createHeatmapForSNPList ("./",genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy) 
 }
@@ -24,27 +23,28 @@ main <- function () {
 # create SNP profiles for a list of SNPS
 #----------------------------------------------------------
 createHeatmapForSNPList <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy) {
-	message (paste (outputDir, genoFileACGT, genoFileNUM, phenoFile, snpList, ploidy, sep="\n")) 
 	outName = paste0 (outputDir, "/out-SNPProfile") 
+
+	genotypeACGT    <- read.csv (genoFileACGT, na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F )
+	genotypeNUMERIC <- read.csv (genoFileNUM,  na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
+	phenotype       <- read.csv (phenoFile,    na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
 
 	pdfHeatMap <- function (snp) {
 		message  ("    >>>> Heatmap for snp: ", snp)
-		createHeatmapForSNP (outputDir, genoFileACGT, genoFileNUM, phenoFile, snp, ploidy)
+		createHeatmapForSNP (outputDir, genotypeACGT, genotypeNUMERIC, phenotype, snp, ploidy)
 	}
 
+	# Not works in parallel
 	NCORES = detectCores ()
-	for (s in snpList)
-		pdfHeatMap (s)
-	#res=mclapply (snpList, pdfHeatMap, mc.cores=NCORES)
+	for (i in snpList) 
+		pdfHeatMap (i)
+	#res=mclapply (snpList, pdfHeatMap, mc.cores=1)
 }
 
 #----------------------------------------------------------
 # create a SNP profile for a snpId
 #----------------------------------------------------------
-createHeatmapForSNP <- function (outputDir, genoFileACGT, genoFileNUM, phenoFile, snpId, ploidy) {
-	genotypeACGT    <- read.csv (genoFileACGT, na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F )
-	genotypeNUMERIC <- read.csv (genoFileNUM,  na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
-	phenotype       <- read.csv (phenoFile,    na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
+createHeatmapForSNP <- function (outputDir, genotypeACGT, genotypeNUMERIC, phenotype, snpId, ploidy) {
 
 	# Get names and values for phenotype
 	phenoNames  = phenotype [,1]

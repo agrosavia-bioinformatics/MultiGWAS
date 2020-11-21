@@ -4,12 +4,14 @@
 # Plink GWAS with population structure using PCs (N=10)
 
 GENOPLINK=$1
-PHENOTBL=$2
-OUTFILE=$3
+TRAITTYPE=$2
+PHENOTBL=$3
+OUTFILE=$4
+GENEACTION=$5
 
 cmm="plink --file $GENOPLINK --allow-extra-chr --pca 5 --out out-PCs"
-echo ">>>> " $cmm
+echo ">>>> cmm1: " $cmm
 eval $cmm
-cmm="plink --file $GENOPLINK --allow-extra-chr --linear --adjust --pheno $PHENOTBL --all-pheno --allow-no-sex --covar out-PCs.eigenvec --out $OUTFILE"
-echo ">>>>" $cmm
+cmm="plink --file $GENOPLINK ${TRAITTYPE} --allow-extra-chr --pheno $PHENOTBL --all-pheno --allow-no-sex --covar out-PCs.eigenvec --out $OUTFILE --linear $GENEACTION" 
+echo ">>>> cmm2: " $cmm
 eval $cmm

@@ -25,16 +25,102 @@ HOME = Sys.getenv ("MULTIGWAS_HOME")
 #msgmsg = message
 main <- function () 
 {
-	source ("lglib03.R")
 	options (width=300)
 	args = commandArgs (trailingOnly=T)
 
-	inputFilename  = args [1]
+	genotypeFile  = args [1]
 
+	#numericTetraToNumericDiploGSMatrix (genotypeFile)
 	#convertVCFToACGTByNGSEP (inputFilename)
-	convertAABBGWASpolyToNumericFormat (inputFilename)
+	#convertAABBGWASpolyToNumericFormat (inputFilename)
+	#gwaspTetraToDiploGenotype (genotypeFile)
+	#ACGTToNumericGenotypeFormat (genotypeFile, 4)
+	#getCommonGenoPhenoMap (args[1], args[2])
+	#createGwaspolyGenotype (args [1], args [2], 4)
+	#convertFitpolyToKMatrix (args [1])
+	convertFitpolyToGwaspolyGenotype (args [1], args [2])
 }
 
+#-------------------------------------------------------------
+# Get common sample names
+#-------------------------------------------------------------
+getCommonGenoPhenoMap <- function (genotypeFile, phenotypeFile, mapFile=NULL) {
+	geno  = read.csv (file=genotypeFile, check.names=F)
+	pheno = read.csv (file=phenotypeFile, check.names=F)
+
+	# From phenotype, remove duplicated and NA samples
+	pheno  = pheno [!is.na(pheno[,2]),]
+	pheno  = pheno [!duplicated (pheno[,1]),]
+
+	# From genotype, remove duplicated markers
+	geno  = geno [!duplicated (geno[,1]),]
+
+	# Get common samples
+	genoSamples   = colnames (geno[,-(1:3)])
+	phenoSamples  = pheno [,1] 
+	commonSamples = intersect (genoSamples, phenoSamples) 
+
+	# Create new geno, pheno
+	genoCommon  = geno  [,c (colnames(geno)[1:3], commonSamples)]
+	phenoCommon = pheno [pheno[,1] %in% commonSamples,]
+
+	genoCommonFile  = addLabel (genotypeFile, "COMMON")
+	phenoCommonFile = addLabel (phenotypeFile, "COMMON")
+	write.csv (file=genoCommonFile, genoCommon, quote=F, row.names=F)
+	write.csv (file=phenoCommonFile, phenoCommon, quote=F, row.names=F)
+
+	return (list (geno=genoCommon, pheno=phenoCommon))
+}
+#----------------------------------------------------------
+# Get reference/alternate alleles from GWASpoly genotype
+#----------------------------------------------------------
+getReferenceAlternateAlleles <- function (genotypeFile, ploidy) {
+	geno = read.csv (file=genotypeFile, check.names=F)
+	map  = geno [,2:3]
+
+	markers           = as.matrix(geno[,-(1:3)])
+	sampleNames       = colnames (geno[,-(1:3)])
+	rownames(markers) = geno[,1]
+			
+	tmp <- apply(markers,1,getReferenceAllele)
+	ref <- tmp[1,]
+	alt <- tmp[2,]
+
+	refAltTable = data.frame (Markers=geno[,1], Ref=ref, Alt=alt, map)
+	write.csv (refAltTable, addLabel (genotypeFile, "REF-ALT"), quote=F, row.names=F)
+}
+
+#-------------------------------------------------------------
+# Convert GWASpoly genotype to fitPoly scores
+# Write two table: fitPoly scores and map info
+#-------------------------------------------------------------
+convertGwaspolyToFitpolyScores <- function (gwpFile) {
+	#---- Local function ------
+	convert <- function (row) {
+		sampleNames = names (row)[-c(1:2)]
+		values      = as.numeric (row [-c(1:2)])
+		n           = length (values)
+		maxgeno     = geno = values
+		geno [is.na(values)] = ""
+		rowDF = data.frame (
+			marker=as.character (row[1]), MarkerName=as.character (row[2]),
+			SampleName=sampleNames, ratio=runif (n,0,1), P0=runif (n,0,1), 
+			P1=runif (n,0,1), P2=runif (n,0,1), P3=runif (n,0,1), P4=runif (n,0,1),
+			maxgeno=values, maxP=runif (n,0,1), geno=geno)
+		return (rowDF)
+	}
+
+	gwpTable = read.csv (gwpFile) 
+	gwpTable = gwpTable [order(gwpTable[,1]),]
+	mapTable = gwpTable [,1:3]
+	write.csv (mapTable, addLabel (gwpFile, "MAP"), quote=F, row.names=F)
+
+	gwpTable = gwpTable [,-2:-3]
+	gwpTable = data.frame (marker=seq(nrow(gwpTable)), gwpTable)
+
+	fitpolyTable = do.call (rbind.data.frame, apply (gwpTable, 1, convert))
+	write.table (fitpolyTable, addLabel (gwpFile, "FITPOLY"), quote=F, row.names=F, sep="\t")
+}
 #------------------------------------------------------------------------------
 # Convert VCF to ACGT files using "NGSEP"
 #------------------------------------------------------------------------------
@@ -60,6 +146,70 @@ checkForValidPlinkPhenotype <- function (phenotypeFile) {
 it contains values other than 1, 2, 0 or missing")) 
 	
 }
+
+#-------------------------------------------------------------
+# Crete GWASpoly ACGT genotype from numeric kmatrix genotype 
+# and map file (Marker, Ref, Alt, Chrom, Pos)
+#-------------------------------------------------------------
+createGwaspolyGenotype <- function (genotypeFile, mapFile) {
+	msg ("Creating GWASpoly genotype from k-matrix genotype...")
+	geno  = read.csv (genotypeFile, check.names=F, row.names=1)
+	map   = read.csv (mapFile, check.names=F, row.names=1)
+
+	commonMarkers = intersect (rownames(geno),rownames(map))
+	genoCommon    = geno [commonMarkers,]
+	mapCommon     = map [commonMarkers,]
+
+	gwaspolyGeno  = data.frame (Marker=rownames (genoCommon), 
+								Chromosome=map [,3],
+								Position=map [,4],
+								genoCommon)
+
+	outFile = addLabel (genotypeFile, "GWASPOLY")
+	write.csv (gwaspolyGeno, outFile, quote=F, row.names=F)
+	outFile = numericToACGTFormatGenotype (outFile, mapFile)
+	return (outFile)
+}
+
+#----------------------------------------------------------
+# Convert fitpoly file to genotype matrix
+#----------------------------------------------------------
+convertFitpolyToGwaspolyGenotype <- function (fitpolyScoresFile, mapFile) {
+	kmatrixFile  = convertFitpolyToKMatrix (fitpolyScoresFile)
+	gwaspolyFile = createGwaspolyGenotype (kmatrixFile, mapFile)
+	return (gwaspolyFile)
+}
+#----------------------------------------------------------
+# Convert fitpoly file to genotype matrix
+#----------------------------------------------------------
+convertFitpolyToKMatrix <- function (fitpolyScoresFile) {
+	msg ("Converting fitPoly to k-matrix genotype... ")
+	#--- Function to convert fitPoly table to GWASpoly matrix
+	createMatrix <- function (snp, fitGenos) {
+		dataSnp = fitGenos [fitGenos$MarkerName==snp,]
+		genos   = data.frame (t(dataSnp$geno))
+		if (all (is.na (genos))) 
+			return (NULL)
+		names (genos)    = dataSnp$SampleName
+		rownames (genos) = snp
+		return (genos)
+	 }
+	#------------------------------------------------------
+
+	fitGenos      = read.table (fitpolyScoresFile, sep="\t", header=T)		
+	snpList       = levels (fitGenos$MarkerName)
+	nCores        = ifelse (detectCores()>1, detectCores()-1, 1)
+
+	outs          = mclapply (snpList, createMatrix, fitGenos, mc.cores=nCores)
+	fitGenosDF    = do.call (rbind.data.frame, outs)
+
+	outFilename   = addLabel (fitpolyScoresFile, "KMATRIX")
+
+	fitPolyMatrix = data.frame (Makers=rownames (fitGenosDF), fitGenosDF)
+	write.csv (fitPolyMatrix, outFilename, quote=F, row.names=F)
+	return (outFilename)
+}
+
 
 #-------------------------------------------------------------
 # Return the format type of genotype
@@ -95,7 +245,7 @@ checkGenotypeFormat <- function (genotypeFile, ploidy) {
 		write.csv (genoGwaspoly, newFilename, row.names=F)
 		return (newFilename)
 	}
-
+		
 	# Check if GWASpoly
 	sample = data [1:10,3:10]
 	if (all(sapply(sample, equalLength, ploidy), na.rm=T)==TRUE)
@@ -234,7 +384,9 @@ bases <- c("A","C","G","T")
 getReferenceAllele <- function (x) {
 	y <- paste(na.omit(x),collapse="")
 	ans <- apply(array(bases),1,function(z,y){length(grep(z,y,fixed=T))},y)
+
 	if (sum(ans)>2) {stop("Error in genotype matrix: More than 2 alleles")}
+
 	if (sum(ans)==2) {
 		ref.alt <- bases [which (ans==1)]
 		countAllele1 = stri_count (y, fixed=ref.alt[1])
@@ -251,17 +403,17 @@ getReferenceAllele <- function (x) {
 #----------------------------------------------------------
 # Wrong: get random get/ref alleles
 #----------------------------------------------------------
-get.ref <- function(x) 
-{
+get.ref <- function(x) {
 	y <- paste(na.omit(x),collapse="")
-	print (y);
 	ans <- apply(array(bases),1,function(z,y){length(grep(z,y,fixed=T))},y)
-	print (ans)
+
 	if (sum(ans)>2) {stop("Error in genotype matrix: More than 2 alleles")}
-	if (sum(ans)==2) {ref.alt <- bases[which(ans==1)]}
+
+	if (sum(ans)==2) {
+		ref.alt <- bases[which(ans==1)]
+	}
 	if (sum(ans)==1) {ref.alt <- c(bases[which(ans==1)],NA)}
 
-	print (ref.alt)
 	return(ref.alt)
 }
 
@@ -320,6 +472,7 @@ createPlinkPedFromGwaspolyGenotype <- function (gwaspGenoFile, plinkFile)
 #----------------------------------------------------------
 gwaspTetraToDiploGenotype <- function (genotypeFile) 
 {
+	#msgmsg ("Converting genotype from tetraploid to diploid...")
 	genotype = read.csv (genotypeFile, header=T,check.names=F)
 	map      = genotype [,1:3] 
 	alleles  = as.matrix (genotype [,-c(1,2,3)])
@@ -332,7 +485,7 @@ gwaspTetraToDiploGenotype <- function (genotypeFile)
 	#refAltAlleles <- apply(alleles,1,get.ref)
 	refAltAlleles <- apply(alleles,1,getReferenceAllele)
 
-	##msgmsg ("    >>>> Converting tetra to diplo")
+	#msgmsg ("    >>>> Converting tetra to diplo")
 	diplosMat  <- tetraToDiplos (genotype[,-c(2,3)], refAltAlleles)
 	rownames (diplosMat) = markersIds
 	colnames (diplosMat) = samplesIds
@@ -531,29 +684,29 @@ ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy)
 numericToACGTFormatGenotype <- function (genotypeFile, SNPsFile) 
 {
 	genotype     <- read.csv (genotypeFile, header=T, check.names=F)
-	SNPs         <- read.table (SNPsFile, header=T, check.names=F)
+	SNPs         <- read.csv (SNPsFile, header=T, check.names=F)
 	rownames (SNPs) <- SNPs [,1]
 	alleles      <- genotype [,-c(2,3)]
 	allelesACGT  <- numericToACGTFormatAlleles (alleles, SNPs)
 	genoACGT     = data.frame (genotype [,1:3], allelesACGT [,-1])
 
-	outFile = paste0 (strsplit (genotypeFile, split="[.]")[[1]][1],"-ACGT.tbl")
-	#msgmsg ("Writing ACGT genotype to ", outFile, "...")
-	write.table (file=outFile, genoACGT, quote=F,row.names=F, sep=",")
+	#outFile = paste0 (strsplit (genotypeFile, split="[.]")[[1]][1],"-ACGT.csv")
+	outFile = addLabel (genotypeFile, "ACGT")
+	write.csv (genoACGT, outFile, quote=F,row.names=F)
+	return (outFile)
 }
 
-numericToACGTFormatAlleles <- function (alleles, SNPs) 
-{
+numericToACGTFormatAlleles <- function (alleles, SNPs) {
 	setA <- function (allelesVec, refs, alts) {
 		id  = allelesVec [1]
 		gnt <- as.numeric (allelesVec [-1])
 		ref = refs [id,2]
 		alt = alts [id,2]
-		gnt [gnt==4] = strrep(ref,4)
-		gnt [gnt==3] = paste0 (strrep(alt,1),strrep(ref,3))
-		gnt [gnt==2] = paste0 (strrep(alt,2),strrep(ref,2))
-		gnt [gnt==1] = paste0 (strrep(alt,3),strrep(ref,1))
-		gnt [gnt==0] = strrep(alt,4)
+		gnt [gnt==4] = strrep(alt,4)
+		gnt [gnt==3] = paste0 (strrep(ref,1),strrep(alt,3))
+		gnt [gnt==2] = paste0 (strrep(ref,2),strrep(alt,2))
+		gnt [gnt==1] = paste0 (strrep(ref,3),strrep(alt,1))
+		gnt [gnt==0] = strrep(ref,4)
 		return (gnt)
 	}
 	refs <- data.frame (SNPs [,c(1,2)])
@@ -628,6 +781,35 @@ numericToABGenotypeFormat <- function (genotypeFile)
 	write.csv (file=newName, newGeno, quote=F, row.names=F)
 }
 
+##-------------------------------------------------------------
+# Convert gwaspoly genotye from numeric tetra to numeric diplo for GS (-1,0,1)
+#-------------------------------------------------------------
+numericTetraToNumericDiploGSMatrix <- function (genotypeFileMatrix) 
+{
+	toDiplo <- function (alleles) {
+		alleles [alleles==0] = -1
+		alleles [alleles==1] = 0
+		alleles [alleles==2] = 0
+		alleles [alleles==3] = 0
+		alleles [alleles==4] = 1
+		return (alleles)
+	}
+
+	genotype   <- read.csv (genotypeFileMatrix, header=T, check.names=F)
+	markers  = as.character (genotype [,1])
+	alleles  = genotype [,-1]
+
+	allelesNum <- t (apply (alleles, 1, toDiplo))
+	#colnames (allelesNum) = colnames (alleles )
+	#rownames (allelesNum) = rownames (alleles)
+
+	newGeno = cbind (markers, allelesNum)
+	newName = addLabel (genotypeFileMatrix, "diploNUM-GS")
+	write.csv (file=newName, newGeno, row.names=F, quote=F)
+}
+
+
+
 #-------------------------------------------------------------
 # Add label to filename
 #-------------------------------------------------------------
@@ -661,46 +843,49 @@ runCommand <- function (command, logFile="gwas.log", DEBUG=F)
 	}
 }
 
+#----------------------------------------------------------
+# Convert fitpoly file to genotype matrix
+#----------------------------------------------------------
+commandArgsFitpoly <- function (args) {
+	msg ("Converting fitPoly data table to genotype matrix format...")
+	#--- Function to convert fitPoly table to GWASpoly matrix
+	createMatrix <- function (snp, fitGenos) {
+		dataSnp = fitGenos [fitGenos$MarkerName==snp,]
+		genos = data.frame (t(dataSnp$geno))
+		if (all (is.na (genos))) 
+			return (NULL)
+		names (genos) = dataSnp$SampleName
+		rownames (genos) = snp
+		return (genos)
+	 }
+	#------------------------------------------------------
+
+	fitGenosFile = args[1]
+	fitGenos     = read.table (fitGenosFile, sep="\t", header=T)		
+	nCores       = ifelse (detectCores()>1, detectCores()-1, 1)
+
+	outs         = mclapply (snpList, createMatrix, fitGenos, mc.cores=7)
+	fitGenosDF   = do.call (rbind.data.frame, outs)
+
+	outFilename  = addLabel (fitGenosFile, "MATRIX")
+
+	fitPolyMatrix = data.frame (Makers=rownames (fitGenosDF), fitGenosDF)
+	write.csv (fitPolyMatrix, outFilename, quote=F, row.names=F)
+}
+
 #-------------------------------------------------------------
+# Add label to filename and new extension (optional)
 #-------------------------------------------------------------
-runCommand <- function (command, logFile="") {
-	msgmsg (">>>> ", command)
-	if (logFile != "")
-		system (paste0 (command, " > ", logFile))
+addLabel <- function (filename, label, newExt=NULL)  {
+	nameext = strsplit (filename, split="[.]")
+	name    = nameext [[1]][1] 
+	if (is.null (newExt))
+		ext     = nameext [[1]][2] 
 	else
-		system (command)
+		ext     = newExt
+	newName = paste0 (nameext [[1]][1], "-", label, ".", ext )
+	return (newName)
 }
-
-#----------------------------------------------------------
-# Util to print head of data
-# Fast head, for debug only
-#----------------------------------------------------------
-hd1 <- function (data, n=10,m=10) {
-	if (is.null (dim (data))) {
-		size = length
-		if (length (data) < 10) n = length(data)
-	}else {
-		size = dim
-		if (nrow (data) < 10) n = nrow(data)
-		if (ncol (data) < 10) m = ncol(data)
-	}
-
-	filename = deparse (substitute (data))
-	message (paste (deparse (substitute (data)),":  "))
-	print (size (data))
-	if (is.null (dim (data)))
-		print (data [1:m])
-	else if (ncol (data) < 10) 
-		print (data[1:n,])
-	else if (nrow (data) < 10)
-		print (data[,1:m])
-	else 
-		print (data [1:n, 1:m])
-
-	write.csv (data, paste0("x-", filename, ".csv"), quote=F, row.names=F)
-	
-}
-
 #----------------------------------------------------------
 #----------------------------------------------------------
 #main ()
