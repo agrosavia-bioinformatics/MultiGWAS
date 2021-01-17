@@ -25,20 +25,27 @@ HOME = Sys.getenv ("MULTIGWAS_HOME")
 #msgmsg = message
 main <- function () 
 {
+	DEBUG <<- F
 	options (width=300)
 	args = commandArgs (trailingOnly=T)
 
-	genotypeFile  = args [1]
+	inputFile  = args [1]
+	mapFile    = args [2]
+	NCORES <<- 1
+
+	convertVCFToACGTByNGSEP (inputFile)
 
 	#numericTetraToNumericDiploGSMatrix (genotypeFile)
-	#convertVCFToACGTByNGSEP (inputFilename)
 	#convertAABBGWASpolyToNumericFormat (inputFilename)
 	#gwaspTetraToDiploGenotype (genotypeFile)
 	#ACGTToNumericGenotypeFormat (genotypeFile, 4)
 	#getCommonGenoPhenoMap (args[1], args[2])
 	#createGwaspolyGenotype (args [1], args [2], 4)
 	#convertFitpolyToKMatrix (args [1])
-	convertFitpolyToGwaspolyGenotype (args [1], args [2])
+	#convertFitpolyToGwaspolyGenotype (args [1], args [2])
+
+	convertUpdogToKMatrix (args [1])
+	convertUpdogToGwaspolyGenotype (args [1], args [2])
 }
 
 #-------------------------------------------------------------
@@ -152,7 +159,6 @@ it contains values other than 1, 2, 0 or missing"))
 # and map file (Marker, Ref, Alt, Chrom, Pos)
 #-------------------------------------------------------------
 createGwaspolyGenotype <- function (genotypeFile, mapFile) {
-	msg ("Creating GWASpoly genotype from k-matrix genotype...")
 	geno  = read.csv (genotypeFile, check.names=F, row.names=1)
 	map   = read.csv (mapFile, check.names=F, row.names=1)
 
@@ -172,6 +178,46 @@ createGwaspolyGenotype <- function (genotypeFile, mapFile) {
 }
 
 #----------------------------------------------------------
+# Convert updog file to genotype matrix
+#----------------------------------------------------------
+convertUpdogToGwaspolyGenotype <- function (updogScoresFile, mapFile) {
+	kmatrixFile  = convertUpdogToKMatrix (updogScoresFile)
+	gwaspolyFile = createGwaspolyGenotype (kmatrixFile, mapFile)
+	return (gwaspolyFile)
+}
+#----------------------------------------------------------
+# Convert updog file to genotype matrix
+#----------------------------------------------------------
+convertUpdogToKMatrix <- function (updogScoresFile) {
+	#--- Function to convert fitPoly table to GWASpoly matrix
+	createMatrix <- function (snp, fitGenos) {
+		dataSnp = fitGenos [fitGenos$snp==snp,]
+		genos   = data.frame (t(dataSnp$geno))
+		if (all (is.na (genos))) 
+			return (NULL)
+		names (genos)    = dataSnp$ind
+		rownames (genos) = snp
+		return (genos)
+	 }
+	#------------------------------------------------------
+
+	fitGenos      = read.csv (updogScoresFile)		
+	snpList       = levels (fitGenos$snp)
+	nCores        = ifelse (detectCores()>1, detectCores()-1, 1)
+	nCores = 1
+
+	outs          = mclapply (snpList, createMatrix, fitGenos, mc.cores=nCores)
+	updogGenosDF  = do.call (rbind.data.frame, outs)
+
+	outFilename   = addLabel (updogScoresFile, "KMATRIX")
+
+	updogMatrix = data.frame (Markers=rownames (updogGenosDF), updogGenosDF)
+	write.csv (updogMatrix, outFilename, quote=F, row.names=F)
+	return (outFilename)
+}
+
+
+#----------------------------------------------------------
 # Convert fitpoly file to genotype matrix
 #----------------------------------------------------------
 convertFitpolyToGwaspolyGenotype <- function (fitpolyScoresFile, mapFile) {
@@ -183,7 +229,6 @@ convertFitpolyToGwaspolyGenotype <- function (fitpolyScoresFile, mapFile) {
 # Convert fitpoly file to genotype matrix
 #----------------------------------------------------------
 convertFitpolyToKMatrix <- function (fitpolyScoresFile) {
-	msg ("Converting fitPoly to k-matrix genotype... ")
 	#--- Function to convert fitPoly table to GWASpoly matrix
 	createMatrix <- function (snp, fitGenos) {
 		dataSnp = fitGenos [fitGenos$MarkerName==snp,]
@@ -205,7 +250,7 @@ convertFitpolyToKMatrix <- function (fitpolyScoresFile) {
 
 	outFilename   = addLabel (fitpolyScoresFile, "KMATRIX")
 
-	fitPolyMatrix = data.frame (Makers=rownames (fitGenosDF), fitGenosDF)
+	fitPolyMatrix = data.frame (Markers=rownames (fitGenosDF), fitGenosDF)
 	write.csv (fitPolyMatrix, outFilename, quote=F, row.names=F)
 	return (outFilename)
 }
@@ -307,7 +352,7 @@ plinkToVCFFormat <- function (plinkFile, outFile) {
 #------------------------------------------------------------------------------
 ## Format and write gwasp to tassel phenotype (For rtassel)
 #------------------------------------------------------------------------------
-gwaspToTasselPhenotype<- function (gwaspPhenotypeFile, outFilename="") 
+gwaspolyToTasselPhenotype<- function (gwaspPhenotypeFile, outFilename="") 
 {
 	gwaspPhenotype = read.csv (file=gwaspPhenotypeFile, header=T, check.names=F, )
 	taxa           = as.character (gwaspPhenotype [,1])
@@ -369,7 +414,7 @@ gwasp2plinkPhenotype <- function (gwaspPhenoFile, outFile="")
 #------------------------------------------------------------------------------
 # Gwasp to plink format (.ped .map)
 #------------------------------------------------------------------------------
-gwaspToPlinkFormat <- function (genotypeFile, plinkFile) {
+gwaspolyToPlinkFormat <- function (genotypeFile, plinkFile) {
 	markersIdsMap = createPlinkMapFromGwaspolyGenotype (genotypeFile, plinkFile)
 	plinkFile     = createPlinkPedFromGwaspolyGenotype (genotypeFile, plinkFile)
 	#plinkFile     = createPlinkPedFromGwaspolyGenotype (genotypeFile, markersIdsMap)
@@ -637,17 +682,17 @@ convertACGTGWASpolyToGenodiveACGTGenotypeFormat <- function (genotypeFile)
 #----------------------------------------------------------
 # Convert gwaspoly genotype from ACGT to numeric format
 #----------------------------------------------------------
-ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy) 
+ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy, MAP=F) 
 {
 	NCORES = detectCores()
 	geno = read.csv (file=genotypeFile, header=T, check.names=F)
-	map <- data.frame(Marker=geno[,1],Chrom=factor(geno[,2],ordered=T),Position=geno[,3],stringsAsFactors=F)
 
 	markers           = as.matrix(geno[,-(1:3)])
 	sampleNames       = colnames (geno[,-(1:3)])
 	rownames(markers) = geno[,1]
 			
-	tmp <- apply(markers,1,getReferenceAllele)
+	tmp     <- apply(markers,1,getReferenceAllele)
+	map     <- data.frame(Marker=geno[,1],Chrom=factor(geno[,2],ordered=T),Position=geno[,3],stringsAsFactors=F)
 	map$Ref <- tmp[1,]
 	map$Alt <- tmp[2,]
 
@@ -664,16 +709,20 @@ ACGTToNumericGenotypeFormat <- function (genotypeFile, ploidy)
 	matTransposed   = t(matRefMarkers)
 	ACGTList        = mclapply(seq_len(ncol(matTransposed)), function(i) matTransposed[,i],mc.cores=NCORES)
 	numList         = mclapply(ACGTList, acgtToNum, mc.cores=NCORES)
+	numericMatrixM  = as.data.frame (numList,col.names=rownames (matRefMarkers))
 
-	M = as.data.frame (numList,col.names=rownames (matRefMarkers))
-	tM =  (t(M))
-	colnames (tM) = sampleNames
+	tM              =  (t(numericMatrixM))
+	colnames (tM)   = sampleNames
 
-	newGeno = data.frame (map[,1:3], tM, check.names=F) # Check=FALSE names but not row names
-	newName = paste0 (strsplit (genotypeFile, split="[.]")[[1]][1], "-NUM.tbl")
-	write.csv (file=newName, newGeno, quote=F, row.names=F)
+	newGeno     = data.frame (map[,1:3], tM, check.names=F) # Check=FALSE names but not row names
 
-	return (newName)
+	if (MAP == TRUE)
+		return (list(geno=geno, genoNum=newGeno, map=map))
+	else{
+		newGenoFile = addLabel (genotypeFile, "NUM")
+		write.csv (newGeno, newGenoFile, quote=F, row.names=F)
+		return (newGenoFile)
+	}
 }
 
 #----------------------------------------------------------
@@ -831,15 +880,17 @@ msg <- function (...)
 #-------------------------------------------------------------
 # Run a command string using system function and writes output to log file
 #-------------------------------------------------------------
-runCommand <- function (command, logFile="gwas.log", DEBUG=F) 
+runCommand <- function (command, logFile="gwas.log") 
 {
 	if (DEBUG==T) {
 		msgmsg (">>>> ", command)
 		system (command)
 	}else {
-		#msgmsg (">>>> ", command)
 		errorsLog = paste0 (strsplit(logFile, split="[.]")[[1]], ".errors")
-		system (paste0 (command, " > ", logFile," 2> ",errorsLog))
+		if (logFile=="gwas.log")
+			system (paste0 (command, " >> ", logFile," 2>> ",errorsLog))
+		else
+			system (paste0 (command, " > ", logFile," 2> ",errorsLog))
 	}
 }
 
@@ -885,6 +936,28 @@ addLabel <- function (filename, label, newExt=NULL)  {
 		ext     = newExt
 	newName = paste0 (nameext [[1]][1], "-", label, ".", ext )
 	return (newName)
+}
+
+#----------------------------------------------------------
+# Util to print head of data
+# Fast head, for debug only
+#----------------------------------------------------------
+view <- function (data, n=5,m=6, outPrefix="") {
+	filename = deparse (substitute (data))
+	name = paste (deparse (substitute (data)),":  ")
+	if (is.null (dim (data))) {
+		dimensions = paste (length (data))
+		message (name, class(data), " : (", paste0 (dimensions),")")
+		if (length (data) < 6) n = length(data)
+		print (data[1:n])
+	}else {
+		dimensions = paste0 (unlist (dim (data)),sep=c(" x ",""))
+		message (name, class(data), " : (", paste0 (dimensions),")")
+		if (n==0 | nrow (data) < 5) n = nrow(data)
+		if (m==0 | ncol (data) < 6) m = ncol(data)
+		print (data[1:n,1:m])
+	}
+	write.csv (data, paste0("x-", outPrefix,"-", filename, ".csv"), quote=F, row.names=F)
 }
 #----------------------------------------------------------
 #----------------------------------------------------------

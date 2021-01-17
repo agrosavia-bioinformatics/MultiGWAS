@@ -34,8 +34,8 @@ class Controller extends JFrame {
     public Controller(String text) {
         super(text);
         model = new Model(this);
-        viewToolBar = new ViewToolBar(this);
         setTitle("JMultiGWAS Tool for GWAS");
+        
     }
 
     public void init() {
@@ -51,6 +51,15 @@ class Controller extends JFrame {
         // this.setMenu();
         this.setVisible(true);
         tabInputs.setEnabledInputs(false);
+        //setTestMode (true);
+    }
+    
+    // Start with test mode options
+    public void setTestMode (boolean testMode) {
+        if (testMode) {
+            tabInputs.setTestMode (testMode);
+            viewToolBar.setTestMode (testMode);
+        }
     }
 
     public void initViewTabs() {
@@ -67,15 +76,20 @@ class Controller extends JFrame {
         viewTabs.addTab("Outputs", tabOutputs);
         viewTabs.addTab("Results", tabResults);
         viewTabs.addTab("Files", tabFiles);
-
+        
+        viewToolBar = new ViewToolBar(this);
+        
         //onNewProject();
     }
 
     public String getToolsToRun() {
         String tools = viewToolBar.getToolsToRun();
-        
-
         return (tools);
+    }
+
+    public String getGeneAction() {
+        String geneAction = viewToolBar.getGeneAction();
+        return (geneAction);
     }
 
     public void onDefaultButton() {
@@ -92,6 +106,7 @@ class Controller extends JFrame {
 
             model.runApplication(outputDir, values);
             viewTabs.setSelectedIndex(1);
+            tabOutputs.clearOutputs();
         }
     }
 
@@ -100,16 +115,39 @@ class Controller extends JFrame {
     }
 
     public void onEndOfExecution() {
+        System.out.println ("Hello");
+        String SEP = File.separator;
         String workingDir = tabInputs.getOutputDir();
         String dirName = Paths.get(workingDir).getFileName().toString();
-        String outputDir = workingDir + File.separator + "out-" + dirName;
-        String reportDir = outputDir + File.separator + "report";
-        String htmlFilename = outputDir + File.separator + "multiGWAS-report.html";
-
-        browseFile(htmlFilename, reportDir);
+        String outputDir = workingDir + SEP + "out-" + dirName;
+        
+        // Get trait dir
+        File[] directories = new File(outputDir).listFiles(File::isDirectory);
+        String traitDir = directories[0].getName();
+        System.out.println (">>>" + traitDir);
+        
+        String reportDir    = outputDir + SEP + traitDir + SEP + "report";
+        String htmlFilename = outputDir + SEP + traitDir + SEP + "multiGWAS-report.html";
+        //browseFile(htmlFilename, reportDir);
+        
+        writeLine ("Report of results in: <a href='file://"+htmlFilename+"'>"+htmlFilename+"</a>","html");
+        
+        // Set tabs 
+        tabResults.showResults(htmlFilename);
+        // viewTabs.setSelectedIndex(2);
+        tabFiles.changeDir(reportDir);
+        //tabResults = new ViewResults("/tmp/multiGWAS-report.html");  
+    }
+    public void onGenotypeFormat (String genoFormat) {
+        if (genoFormat.matches("KMatrix|FitPoly|Updog")) {
+            System.out.println ("Received KMatrix");
+            tabInputs.enableMapComponents(true);
+        }else if (genoFormat.matches("GWASpoly|VCF")) {
+                tabInputs.enableMapComponents(false);
+        }
     }
 
-    public void browseFile(String url, String reportDir) {
+    public void browseFile(String url) {
         String myOS = System.getProperty("os.name").toLowerCase();
         OUT("(Your operating system is: " + myOS + ")\n");
 
@@ -130,33 +168,15 @@ class Controller extends JFrame {
                     OUT("I was unable/unwilling to launch a browser in your OS :( #SadFace");
                 }
             }
-            OUT("\nThings have finished.\nI hope you're OK.");
+            OUT("\nThings have finished.");
         } catch (IOException | URISyntaxException eek) {
             OUT("**Stuff wrongly: " + eek.getMessage());
         }
 
-        tabResults.showResults(url);
-        viewTabs.setSelectedIndex(2);
-        OUT(">>> Report file: " + url);
-        tabFiles.changeDir(reportDir);
-        //tabResults = new ViewResults("/tmp/multiGWAS-report.html");  
     }
 
-    public void onNewButton() {
-        tabInputs.clearInputs();
-        //tabInputs.add(tabInputs, BorderLayout.CENTER);
-        //paintComponents(getGraphics());
-    }
-
-    public void sendToOutputs(char c) {
-        tabOutputs.append(c);
-    }
-
-    public void sendToOutputs(String s) {
-        int n = s.length();
-        for (int i = 0; i < n; i++) {
-            tabOutputs.append(s.charAt(i));
-        }
+    public void writeLine(String s, String type) {
+        tabOutputs.writeLine(s, type);
     }
 
     private void OUT(String string) {

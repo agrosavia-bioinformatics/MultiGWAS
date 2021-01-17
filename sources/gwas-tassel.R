@@ -12,11 +12,11 @@ runToolTassel <- function (params) {
 	outFile       = paste0 ("out/tool-TASSEL-scores-", model)
 	scoresFile    = paste0 (outFile, ".csv")
 
-	if (model=="Naive") {
+	if (model=="naive") {
 		cmm=sprintf ("%s/sources/scripts/script-tassel-NaiveModel.sh %s %s %s", HOME,inGenoVCF, inPhenoTBL, outFile)
 		runCommand (cmm, "log-tassel.log")
 		tasselFile   = list.files("out/", pattern=sprintf("^(.*(%s).*(1).*(txt)[^$]*)$",model), full.names=T)
-	}else if (model=="Full") {
+	}else if (model=="full") {
 		cmm=sprintf ("%s/sources/scripts/script-tassel-FullModel.sh %s %s %s", HOME, inGenoVCF, inPhenoTBL, outFile)
 		runCommand (cmm, "log-tassel.log")
 		tasselFile   = list.files("out/", pattern=sprintf("^(.*(%s).*(stats).*(txt)[^$]*)$",model), full.names=T)
@@ -72,7 +72,10 @@ runToolTassel <- function (params) {
 		gnrTable <- createTableTassel (results, "dominant", "dom_p")
 		scoresTableAll <- rbind (addTable, domTable, gnrTable)
 	}
-	write.table (file=scoresFile, scoresTableAll, quote=F, sep="\t", row.names=F)
+	colnames (scoresTableAll)[colnames(scoresTableAll) %in% c("Chr","Pos")] = c ("CHR","POS")
+	write.table (scoresTableAll, scoresFile, quote=F, sep="\t", row.names=F)
 	msg ("... Ending TASSEL")
+
+	return (list (tool="TASSEL", scoresFile=scoresFile, scores=scoresTableAll))
 }
 

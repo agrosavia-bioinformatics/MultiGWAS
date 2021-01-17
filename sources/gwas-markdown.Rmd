@@ -20,7 +20,7 @@ MultiGWAS is a tool to do GWAS analysis in tetraploid organisms by executing in 
 
 MultiGWAS executes two types of GWAS models: Full and Naive.  The Full model with control for population structure and individual relatedness and the Naive model without any control. In both models, users can apply different control quality filters for the genomic data. 
 
-This report, created by the MultiGWAS tool, is a summary of the input parameters used to run the tool and its main outputs, including (1) Score tables with detailed information on the associations for each tool. (2) Venn diagrams of shared SNPs among the four tools. (3) Heatmaps of significative SNP profiles among the four tools. (4) Manhattan and QQ plots for the association found by each tool. And (5) Chord diagrams for the chromosomes vs. SNP by each tool.
+This report, created by the MultiGWAS tool, is a summary of the input parameters used to run the tool and its main outputs, including (1) Score tables with detailed information on the associations for each tool. (2) Venn diagrams of shared SNPs among the four tools. (3) Heatmaps of significant SNP profiles among the four tools. (4) Manhattan and QQ plots for the association found by each tool. And (5) Chord diagrams for the chromosomes vs. SNP by each tool.
 
 ```{r includeKnit, include=FALSE,echo=FALSE}
 library(knitr)
@@ -72,11 +72,11 @@ knitr::include_graphics (paste0(inputDir,"/out-multiGWAS-vennDiagram-best.png"))
 ```
 
 
-# Significative SNPs
+# Significant SNPs
 This section shows a table and a Venn diagram for the signifcative SNPs (score is above the significance threshold for each tool).  
 
 
-## Table of significative SNPs
+## Table of significant SNPs
 
 The following table shows the associations between SNPs and the trait as transformed p-values to scores as -log 10 (p-value) sorted from the highest to the lowest scores based on each tool analysis and the model selected (Full or Naive). Each SNP has its associated information, such as the chromosome, position in the genome, and name.  
 
@@ -87,16 +87,16 @@ kable (significativesTable) %>%
 ```
 
 
-## Venn diagram of significative SNPs
+## Venn diagram of significant SNPs
 
-The Venn diagram shows the significative SNPs that are either unique or shared by the four software. Shared SNPs appear in the intersection areas of the diagram.
+The Venn diagram shows the significant SNPs that are either unique or shared by the four software. Shared SNPs appear in the intersection areas of the diagram.
 
-```{r  fig.widht=11, fig.height=30, fig.fullwidth=TRUE}
+```{r vennDiagramSignificant, fig.align = "center", echo=FALSE, message=FALSE, fig.width=5, fig.height=5, fig.fullwidth=TRUE}
 knitr::include_graphics (paste0 (inputDir,"/out-multiGWAS-vennDiagram-significatives.png"))
 ```
 
 # Manhattan and QQ plots
-MultiGWAS uses classical Manhattan and Quantile–Quantile (QQ) plots to visually summarize GWAS results and identify both best-ranked and significative SNPs for each GWAS software. The Manhattan plot shows each SNPs distributed in the genetic location (x-axis) vs. the p-value (y-axis). The best-ranked SNPs are above the blue line and the significative SNPs above the blue line. In green are the SNPs that got 
+MultiGWAS uses classical Manhattan and Quantile–Quantile (QQ) plots to visually summarize GWAS results and identify both best-ranked and significant SNPs for each GWAS software. The Manhattan plot shows each SNPs distributed in the genetic location (x-axis) vs. the p-value (y-axis). The best-ranked SNPs are above the blue line and the significant SNPs above the blue line. In green are the SNPs that got 
 high scores in more than one software. 
 
 The QQ plot plots the observed (black dot lines) vs. expected -log 10 (p-value) (red line).
@@ -114,8 +114,8 @@ Next, we show the chord diagram for the shared SNPs shown in the Venn diagram of
 knitr::include_graphics (paste0 (inputDir, "/out-multiGWAS-scoresTable-best-chordDiagram.png"))
 ```
 
-# Profiles for common significative SNPs 
-For the common significative SNPs, MultiGWAS provides a figure to visualize each trait by individuals (rows)  and genotypes (columns). At the left, the individuals are grouped in a dendrogram by their genotype. At the  right, there is the name or ID of each individual. At the bottom, the genotypes are ordered from left to right, starting from the major to the minor allele (i.e., AAAA, AAAB, AABB, ABBB, BBBB). At the top, there is a  description of the trait based on a histogram of frequency (top left) and by an assigned color for each  numerical phenotype value using a grayscale (top right). Thus, each individual appears as a colored line  by its phenotype value on its genotype column. For each column, there is a solid cyan line with the mean  of each column and a broken cyan line that indicates how far the cell deviates from the mean.  
+# Profiles for common significant SNPs 
+For the common significant SNPs, MultiGWAS provides a figure to visualize each trait by individuals (rows)  and genotypes (columns). At the left, the individuals are grouped in a dendrogram by their genotype. At the  right, there is the name or ID of each individual. At the bottom, the genotypes are ordered from left to right, starting from the major to the minor allele (i.e., AAAA, AAAB, AABB, ABBB, BBBB). At the top, there is a  description of the trait based on a histogram of frequency (top left) and by an assigned color for each  numerical phenotype value using a grayscale (top right). Thus, each individual appears as a colored line  by its phenotype value on its genotype column. For each column, there is a solid cyan line with the mean  of each column and a broken cyan line that indicates how far the cell deviates from the mean.  
 
 Because each multiGWAS report shows one specific trait at a time, the histogram and color key will remain the same for all the best-ranked SNPs.  
 

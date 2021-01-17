@@ -11,5 +11,5 @@ $MULTIGWAS_HOME/tools/run_pipeline.pl \
 	-fork1 -vcf $GENOVCF \
 	-fork2 -r $PHENOTBL \
 	-combine3 -input1 -input2 -intersect \
-	-FixedEffectLMPlugin -endPlugin \
+	-FixedEffectLMPlugin -appendAddDom -endPlugin \
 	-export $OUTFILE-

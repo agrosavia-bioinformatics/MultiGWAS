@@ -18,7 +18,7 @@ main <- function () {
 	params$phenotypeFile     = args [2] 
 	params$trait             = colnames (read.csv (params$phenotypeFile))[2]
 	params$ploidy            = 4
-	params$gwasModel         = "Naive"
+	params$gwasModel         = "naive"
 	params$snpModels         = c("general","additive","1-dom", "2-dom", "diplo-general", "diplo-additive")
 	params$correctionMethod  = "Bonferroni"
 	params$significanceLevel = 0.05
@@ -41,7 +41,7 @@ main <- function () {
 # Set parameters and run GWASpoly tool
 #-------------------------------------------------------------
 runToolGwaspoly <- function (params) {
-	msgmsg("Running GWASpoly...")
+	msgmsg("Running GWASpoly GWAS...")
 
 	scoresFile = paste0 ("out/tool-GWASpoly-scores-", params$gwasModel, ".csv")
 
@@ -57,7 +57,7 @@ runToolGwaspoly <- function (params) {
 			snpModels = modelsDiplo
 	else  # But if user specifided just one model
 		if (params$geneAction == "dominant" & params$ploidy==4)
-			snpModels = c ("2-dom")
+			snpModels = c ("1-dom", "2-dom")
 		else if (params$geneAction == "dominant" & params$ploidy==2)
 			snpModels = c ("1-dom")
 		else
@@ -76,14 +76,22 @@ runToolGwaspoly <- function (params) {
 	# GWAS execution
 	data3 <- runGwaspoly (data2, params, NCORES) 
 						  #params$gwasModel, params$snpModels,params$correctionMethod )
-	# Get SNP associations
-	scoresTable  = getQTLGWASpoly (data3, params$gwasModel, params$ploidy)
-	write.table (file=scoresFile, scoresTable, quote=F, sep="\t", row.names=F)
 
+	# Show results in GWASpoly way
 	msgmsg ("    >>>> GWASpoly showResults...")
-	showResults (data3, params$snpModels, params$trait, params$gwasModel, 
-				 params$phenotypeFile, params$ploidy)
+	showResults (data3, params$snpModels, params$trait, params$gwasModel,params$phenotypeFile, params$ploidy)
 	msg ("...Ending GWASpoly")
+
+	# Get SNP associations
+	scores  = getQTLGWASpoly (data3, params$gwasModel, params$ploidy)
+	colnames (scores)[colnames(scores) %in% c("Chrom","Position")] = c ("CHR","POS")
+
+	scoresColumns = c("MODEL", "GC", "Marker", "CHR", "POS", "P", "SCORE", "THRESHOLD", "DIFF")
+	scores <- data.frame (scores[,scoresColumns], scores [,setdiff (colnames(scores), scoresColumns)])
+
+	write.table (file=scoresFile, scores, quote=F, sep="\t", row.names=F)
+
+	return (list (tool="GWASpoly", scoresFile=scoresFile, scores=scores))
 }
 
 #-------------------------------------------------------------
@@ -92,7 +100,7 @@ runToolGwaspoly <- function (params) {
 controlPopulationStratification <- function (data1, gwasModel) {
 	msgmsg ();msgmsg("Controlling populations structure...")
 
-	if (gwasModel=="Naive") {
+	if (gwasModel=="naive") {
 		msgmsg("    >>>> Without any correction") 
 		markers       = data1@pheno [,1]
 		n             = length (markers)
@@ -100,7 +108,7 @@ controlPopulationStratification <- function (data1, gwasModel) {
 		#dataTmp      <- set.K (data1, K=kinshipMatrix)
 		dataTmp       = set.K (data1, K=NULL)
 		data2         = new ("GWASpolyStruct", dataTmp)
-	}else if (gwasModel == "Full") {
+	}else if (gwasModel == "full") {
 		msgmsg("    >>>> Using default Kinship and PCs=5 ")
 		kinshipMatrix = NULL
 		dataTmp       = set.K (data1)
@@ -121,7 +129,7 @@ runGwaspoly <- function (data2, params, NCORES) {
 	correctionMethod = params$correctionMethod
 	signLevel        = params$significanceLevel
 
- 	if (gwasModel %in% c("Naive")) {
+ 	if (gwasModel %in% c("naive")) {
 		msgmsg(">>>> Without params")
 		data3 = GWASpoly(data2, models=snpModels, traits=NULL, params=NULL, n.core=NCORES)
 	}else {
@@ -166,7 +174,6 @@ showResults <- function (data3, models, trait, gwasModel, phenotypeFile, ploidy)
 # Manhattan and QQ plots
 #-------------------------------------------------------------
 plotMahattanQQ <- function (plotFile, models, data5, trait, data3, gwasModel, ploidy) {
-
 	# Create test models for each ref|alt allele if dominant models present
 	testModels = c()
 	for (m in models)
@@ -179,7 +186,6 @@ plotMahattanQQ <- function (plotFile, models, data5, trait, data3, gwasModel, pl
 	pdf (file=plotFile, width=11, height=15)
 	op <- par(mfrow = c(n,2), mar=c(3.5,3.5,2,1), oma=c(0,0,0,0), mgp = c(2.2,1,0)) #MultiGWAS tools
 	for (i in 1:n) {
-		print (testModels)
 		manhattan.plot (data5, trait=trait, model=testModels [i])
 		qqPlot(data3,trait=trait, model=testModels[i], cex=0.3)
 	}

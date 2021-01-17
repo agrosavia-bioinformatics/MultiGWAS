@@ -30,7 +30,7 @@ createHeatmapForSNPList <- function (outputDir, genoFileACGT, genoFileNUM, pheno
 	phenotype       <- read.csv (phenoFile,    na.strings = "NA", dec = ".", strip.white = TRUE, check.names=F)
 
 	pdfHeatMap <- function (snp) {
-		message  ("    >>>> Heatmap for snp: ", snp)
+		msgmsg  ("\tHeatmap for snp: ", snp)
 		createHeatmapForSNP (outputDir, genotypeACGT, genotypeNUMERIC, phenotype, snp, ploidy)
 	}
 

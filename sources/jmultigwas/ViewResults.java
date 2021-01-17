@@ -27,7 +27,6 @@ public class ViewResults extends JPanel {
     }
 
     public void showResults(String htmlFilename) {
-        System.out.println(">>> Output report file: " + htmlFilename);
         try {
             File file = new File(htmlFilename);
             URL url = file.toURI().toURL();

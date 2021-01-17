@@ -5,19 +5,17 @@
 #-------------------------------------------------------------
 runToolShesis <- function (params) 
 {
-	geneAction = params$geneAction
-	if (geneAction != "all" & geneAction != "additive")
-		return ()
-
-	geneAction = "additive"
 	msgmsg ("Running SHEsis GWAS...")
 
-	outFile      = paste0 ("out/tool-SHEsis-scores-", params$gwasModel)
-	scoresFile   = paste0 (outFile,".csv")
+	geneAction = params$geneAction
+	#if (geneAction != "all" & geneAction != "additive")
+	#	return ()
 
-	if (params$gwasModel == "Naive") {
+	geneAction = "additive"
+
+	if (params$gwasModel == "naive") {
 		gwaspToShesisGenoPheno (params$genotypeFile, params$phenotypeFile, params$ploidy, params$traitType)
-	} else if (params$gwasModel == "Full") {
+	} else if (params$gwasModel == "full") {
 		# Apply kinship and filter individuals
 		inGeno  = "out/filtered-plink-genotype"       # Uses plink file
 		kinFile = paste0 (inGeno,"-kinship-shesis")
@@ -40,8 +38,13 @@ runToolShesis <- function (params)
 		gwaspToShesisGenoPheno (genotypeFileKinship, phenotypeFileKinship, params$ploidy, params$traitType)
 	}
 
-	runShesisCommand (params$traitType, outFile, params, geneAction)
+	outFile      = paste0 ("out/tool-SHEsis-scores-", params$gwasModel)
+	scoresFile   = paste0 (outFile, ".csv")
+	scores       = runShesisCommand (params$traitType, outFile, params, geneAction)
+	write.table (scores, scoresFile, row.names=F, quote=F, sep="\t")
 	msg ("... Ending SHEsis")
+
+	return (list (tool="SHEsis", scoresFile=scoresFile, scores=scores))
 }
 
 #-------------------------------------------------------------
@@ -50,7 +53,6 @@ runShesisCommand <- function (traitType, outFile, params, geneAction) {
 	inGenoPheno  = "out/filtered-shesis-genopheno.tbl"
 	inMarkers    = "out/filtered-shesis-markernames.tbl"
 	flagQTL      = ifelse (traitType=="quantitative", "--qtl", "")
-	scoresFile   = paste0 (outFile, ".csv")
 
 	cmm=sprintf ("%s/sources/scripts/script-shesis-associations-qtl.sh %s %s %s %s %s", HOME, inGenoPheno, params$ploidy, inMarkers, outFile, flagQTL)
 	runCommand (cmm, "log-SHEsis.log")	
@@ -60,7 +62,37 @@ runShesisCommand <- function (traitType, outFile, params, geneAction) {
 	else # case-control
 		resultsAll = createTableFromBinaryResults (outFile, params, geneAction)
 
-	write.table (file=scoresFile, resultsAll, row.names=F, quote=F, sep="\t")
+	return (resultsAll)
+}
+#-------------------------------------------------------------
+# Create table from quantitative .txt file 
+#-------------------------------------------------------------
+createTableFromQuantitativeResults <- function (outFile, params, geneAction) {
+	resultsFile = paste0 (outFile, ".txt")
+
+	results  = read.table (file=resultsFile, header=T, sep="\t", check.names=T) # TRUE as SHEsis colnames have spaces
+
+	# LG: Added 1e-10 to avoid "inf" values in scores
+	#pValues  = results[,"P.value"] + 1e-10
+	pValues  = results[,"P.value"] 
+	m        = length (pValues)
+	adj       = adjustPValues (0.01, pValues, params$correctionMethod)
+	pValues   = adj$pValues
+	threshold = adj$threshold
+	scores    = -log10 (pValues)
+
+	# Set Columns
+	map <- read.table (file="out/map.tbl", sep="\t", check.names=F)
+	rownames (map) = map [,1]
+	Marker <- as.character (results$SNP)
+	CHR <- map [Marker, 2]
+	POS <- map [Marker, 3]
+	GC  = calculateInflationFactor (scores)
+
+	model = geneAction
+	resultsAll <- data.frame (MODEL=model, GC=GC$delta, Marker, CHR, POS, P=pValues, SCORE=round (scores,6), THRESHOLD=round (threshold,6), DIFF=round (scores-threshold, 6), results)
+	resultsAll <- resultsAll [order (resultsAll$DIFF, decreasing=T),]
+
 	return (resultsAll)
 }
 
@@ -135,37 +167,7 @@ createTableFromBinaryResults <- function (outFile, params, geneAction) {
 	return (resultsAll)
 }
 
-#-------------------------------------------------------------
-# Create table from quantitative .txt file 
-#-------------------------------------------------------------
-createTableFromQuantitativeResults <- function (outFile, params, geneAction) {
-	resultsFile = paste0 (outFile, ".txt")
 
-	results  = read.table (file=resultsFile, header=T, sep="\t", check.names=T) # TRUE as SHEsis colnames have spaces
-
-	# LG: Added 1e-10 to avoid "inf" values in scores
-	#pValues  = results[,"P.value"] + 1e-10
-	pValues  = results[,"P.value"] 
-	m        = length (pValues)
-	adj       = adjustPValues (0.01, pValues, params$correctionMethod)
-	pValues   = adj$pValues
-	threshold = adj$threshold
-	scores    = -log10 (pValues)
-
-	# Set Columns
-	map <- read.table (file="out/map.tbl", sep="\t", check.names=F)
-	rownames (map) = map [,1]
-	SNP <- as.character (results$SNP)
-	CHR <- map [SNP, 2]
-	POS <- map [SNP, 3]
-	GC  = calculateInflationFactor (scores)
-
-	model = geneAction
-	resultsAll <- data.frame (MODEL=model, GC=GC$delta, SNP, CHR, POS, P=pValues, SCORE=round (scores,6), THRESHOLD=round (threshold,6), DIFF=round (scores-threshold, 6), results)
-	resultsAll <- resultsAll [order (resultsAll$DIFF, decreasing=T),]
-
-	return (resultsAll)
-}
 
 #----------------------------------------------------------
 # Transform table genotype to SHEsis genotype format

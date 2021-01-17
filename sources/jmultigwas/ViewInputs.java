@@ -38,7 +38,7 @@ public class ViewInputs extends javax.swing.JPanel {
     public void setDefaults() {
         fieldOutputDir.setText(System.getProperty("user.home"));
         fieldPloidy.setSelectedIndex(0);
-        fieldGeno.setText("");
+        genotypeText.setText("");
         fieldPheno.setText("");
         fieldSignificance.setText("0.05");
         fieldCorrection.setSelectedIndex(0);
@@ -54,8 +54,9 @@ public class ViewInputs extends javax.swing.JPanel {
     public void clearInputs() {
         fieldPloidy.setSelectedIndex(0);
         fieldOutputDir.setText("");
-        fieldGeno.setText("");
+        genotypeText.setText("");
         fieldPheno.setText("");
+        mapText.setText("");
         fieldSignificance.setText("");
         fieldCorrection.setSelectedIndex(0);
         fieldModel.setSelectedIndex(0);
@@ -74,6 +75,7 @@ public class ViewInputs extends javax.swing.JPanel {
         for (Component c : panelPaths.getComponents()) {
             c.setEnabled(flag);
         }
+        enableMapComponents (false);
 
         for (Component c : panelParameters.getComponents()) {
             c.setEnabled(flag);
@@ -85,7 +87,20 @@ public class ViewInputs extends javax.swing.JPanel {
 
         fieldOutputDir.setEnabled(true);
         labelOutputDir.setEnabled(true);
-        selOutputDir.setEnabled(true);
+        selOutputDir.setEnabled(true);     
+    }
+    public void enableMapComponents (boolean enableFlag) {
+        mapLabel.setEnabled (enableFlag);
+        mapText.setEnabled (enableFlag);
+        mapButton.setEnabled (enableFlag);
+    } 
+    
+    // Init form with test mode options
+    public void setTestMode (boolean testMode) {
+        if (testMode) {
+            genotypeText.setText ("/home/lg/agrosavia/GWAS-TOOL/development/tests/jmultiGWAS/example-genotype-tetra.csv");
+            fieldPheno.setText ("/home/lg/agrosavia/GWAS-TOOL/development/tests/jmultiGWAS/example-phenotype.csv");
+        }
     }
 
     public String getInputValues() {
@@ -93,8 +108,10 @@ public class ViewInputs extends javax.swing.JPanel {
         String ln = System.lineSeparator();
         txt.append("default:" + ln);
         txt.append("  ploidy               : " + fieldPloidy.getSelectedItem().toString() + ln);
-        txt.append("  genotypeFile         : " + '"' + fieldGeno.getText() + '"' + ln);
-        txt.append("  phenotypeFile        : " + '"' + fieldPheno.getText() + '"' + ln);        
+        txt.append("  genotypeFile         : " + '"' + genotypeText.getText() + '"' + ln);
+        txt.append("  phenotypeFile        : " + '"' + fieldPheno.getText() + '"' + ln);
+        txt.append("  genotypeFormat       : " + '"' + genotypeFormatCBox.getSelectedItem().toString() + '"' + ln);        
+        txt.append("  mapFile              : " + '"' + mapText.getText() + '"' + ln); 
         txt.append("  significanceLevel    : " + fieldSignificance.getText() + ln);
         txt.append("  correctionMethod     : " + '"' + fieldCorrection.getSelectedItem().toString() + '"' + ln);
         txt.append("  gwasModel            : " + fieldModel.getSelectedItem().toString() + ln);
@@ -105,19 +122,26 @@ public class ViewInputs extends javax.swing.JPanel {
         txt.append("  GENO                 : " + fieldFilterGENO.getText() + ln);
         txt.append("  HWE                  : " + fieldFilterHWE.getText() + ln);
         txt.append("  tools                : " + '"' + controller.getToolsToRun() + '"' + ln);
+        txt.append("  geneAction           : " + '"' + controller.getGeneAction() + '"' + ln);
 
         return txt.toString();
     }
 
     public boolean checkCompleteInfo() {
         if (fieldOutputDir.getText().equals ("")) return false;
-        if (fieldGeno.getText().equals ("")) return false;
+        if (genotypeText.getText().equals ("")) return false;
         if (fieldPheno.getText().equals ("")) return false;
         if (fieldSignificance.getText().equals ("")) return false;
         if (fieldFilterMAF.getText().equals ("")) return false;
         if (fieldFilterMIND.getText().equals ("")) return false;
         if (fieldFilterGENO.getText().equals ("")) return false;
         if (fieldFilterHWE.getText().equals ("")) return false;
+        
+        if (genotypeFormatCBox.getSelectedItem().toString().equals ("KMatrix") ||
+            genotypeFormatCBox.getSelectedItem().toString().equals ("FitPoly") ||
+            genotypeFormatCBox.getSelectedItem().toString().equals ("Updog"))
+                if (mapText.getText().equals("")) return false;
+                
         if (controller.getToolsToRun().equals ("")) return false;
         System.out.println("Success: complete information!!");
         return true;
@@ -148,17 +172,23 @@ public class ViewInputs extends javax.swing.JPanel {
 
         panelInputs = new javax.swing.JPanel();
         panelFilesTitle = new javax.swing.JPanel();
-        jLabel14 = new javax.swing.JLabel();
+        labelInputOutput = new javax.swing.JLabel();
         panelPaths = new javax.swing.JPanel();
         labelOutputDir = new javax.swing.JLabel();
         fieldOutputDir = new javax.swing.JTextField();
         fieldPheno = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
-        fieldGeno = new javax.swing.JTextField();
-        jLabel12 = new javax.swing.JLabel();
+        genotypeLabel = new javax.swing.JLabel();
+        genotypeText = new javax.swing.JTextField();
+        genotypeSelButton = new javax.swing.JButton();
+        genotypeFormatLabel = new javax.swing.JLabel();
+        genotypeFormatCBox = new javax.swing.JComboBox<>();
         selOutputDir = new javax.swing.JButton();
-        selGenotypeBt = new javax.swing.JButton();
         selPhenotypeBt = new javax.swing.JButton();
+        mapLabel = new javax.swing.JLabel();
+        mapText = new javax.swing.JTextField();
+        mapButton = new javax.swing.JButton();
+        panelOptions = new javax.swing.JPanel();
         panelParametersTitle = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         panelParameters = new javax.swing.JPanel();
@@ -174,6 +204,7 @@ public class ViewInputs extends javax.swing.JPanel {
         fieldFiltering = new javax.swing.JComboBox<>();
         labelPloidy = new javax.swing.JLabel();
         fieldPloidy = new javax.swing.JComboBox<>();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(15, 0), new java.awt.Dimension(32767, 0));
         panelFiltersTitle = new javax.swing.JPanel();
         panelFilters = new javax.swing.JPanel();
         fieldFilterMIND = new javax.swing.JTextField();
@@ -190,16 +221,16 @@ public class ViewInputs extends javax.swing.JPanel {
         setPreferredSize(new java.awt.Dimension(780, 650));
         setLayout(new java.awt.BorderLayout());
 
-        panelInputs.setBackground(javax.swing.UIManager.getDefaults().getColor("Button.focus"));
         panelInputs.setPreferredSize(new java.awt.Dimension(780, 650));
+        panelInputs.setLayout(new java.awt.BorderLayout());
 
         panelFilesTitle.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
         panelFilesTitle.setLayout(new java.awt.BorderLayout());
 
-        jLabel14.setBackground(javax.swing.UIManager.getDefaults().getColor("Button.disabledToolBarBorderBackground"));
-        jLabel14.setText("Input/Output:");
-        jLabel14.setOpaque(true);
-        panelFilesTitle.add(jLabel14, java.awt.BorderLayout.PAGE_START);
+        labelInputOutput.setBackground(javax.swing.UIManager.getDefaults().getColor("Button.disabledToolBarBorderBackground"));
+        labelInputOutput.setText("Input/Output:");
+        labelInputOutput.setOpaque(true);
+        panelFilesTitle.add(labelInputOutput, java.awt.BorderLayout.PAGE_START);
 
         panelPaths.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
@@ -211,24 +242,33 @@ public class ViewInputs extends javax.swing.JPanel {
         fieldPheno.setToolTipText("Select phenotype file");
         fieldPheno.setPreferredSize(new java.awt.Dimension(90, 19));
 
-        jLabel2.setText("Input Phenotype:");
+        jLabel2.setText("Phenotype file:");
 
-        fieldGeno.setToolTipText("Select genotype file");
-        fieldGeno.setPreferredSize(new java.awt.Dimension(90, 19));
+        genotypeLabel.setText("Genotype file:");
 
-        jLabel12.setText("Input Genotype:");
+        genotypeText.setToolTipText("Select genotype file");
+        genotypeText.setPreferredSize(new java.awt.Dimension(90, 19));
+
+        genotypeSelButton.setText("Select...");
+        genotypeSelButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                genotypeSelButtonActionPerformed(evt);
+            }
+        });
+
+        genotypeFormatLabel.setText("Format:");
+
+        genotypeFormatCBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "GWASpoly", "KMatrix", "VCF", "FitPoly", "Updog", " " }));
+        genotypeFormatCBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                genotypeFormatCBoxActionPerformed(evt);
+            }
+        });
 
         selOutputDir.setText("Select...");
         selOutputDir.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 selOutputDirActionPerformed(evt);
-            }
-        });
-
-        selGenotypeBt.setText("Select...");
-        selGenotypeBt.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                selGenotypeBtActionPerformed(evt);
             }
         });
 
@@ -239,6 +279,21 @@ public class ViewInputs extends javax.swing.JPanel {
             }
         });
 
+        mapLabel.setText("Map file:");
+        mapLabel.setEnabled(false);
+
+        mapText.setToolTipText("Select phenotype file");
+        mapText.setEnabled(false);
+        mapText.setPreferredSize(new java.awt.Dimension(90, 19));
+
+        mapButton.setText("Select...");
+        mapButton.setEnabled(false);
+        mapButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                mapButtonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout panelPathsLayout = new javax.swing.GroupLayout(panelPaths);
         panelPaths.setLayout(panelPathsLayout);
         panelPathsLayout.setHorizontalGroup(
@@ -246,31 +301,32 @@ public class ViewInputs extends javax.swing.JPanel {
             .addGroup(panelPathsLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(panelPathsLayout.createSequentialGroup()
-                        .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel12)
-                            .addComponent(jLabel2))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(panelPathsLayout.createSequentialGroup()
-                                .addComponent(fieldPheno, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(selPhenotypeBt))
-                            .addGroup(panelPathsLayout.createSequentialGroup()
-                                .addGap(2, 2, 2)
-                                .addComponent(fieldGeno, javax.swing.GroupLayout.DEFAULT_SIZE, 452, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(selGenotypeBt))))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelPathsLayout.createSequentialGroup()
-                        .addComponent(labelOutputDir)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(selOutputDir)))
+                    .addComponent(labelOutputDir)
+                    .addComponent(genotypeLabel))
+                .addGap(35, 35, 35)
+                .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(fieldOutputDir)
+                    .addComponent(genotypeText, javax.swing.GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE)
+                    .addComponent(mapText, javax.swing.GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE)
+                    .addComponent(fieldPheno, javax.swing.GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(selOutputDir, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(selPhenotypeBt, javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(genotypeSelButton, javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(mapButton)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(genotypeFormatLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(genotypeFormatCBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
-            .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(panelPathsLayout.createSequentialGroup()
-                    .addGap(147, 147, 147)
-                    .addComponent(fieldOutputDir, javax.swing.GroupLayout.DEFAULT_SIZE, 454, Short.MAX_VALUE)
-                    .addGap(111, 111, 111)))
+            .addGroup(panelPathsLayout.createSequentialGroup()
+                .addGap(12, 12, 12)
+                .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(mapLabel)
+                    .addComponent(jLabel2))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         panelPathsLayout.setVerticalGroup(
             panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -278,28 +334,36 @@ public class ViewInputs extends javax.swing.JPanel {
                 .addContainerGap()
                 .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(selOutputDir, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(labelOutputDir))
+                    .addComponent(labelOutputDir)
+                    .addComponent(fieldOutputDir, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel12)
-                    .addComponent(fieldGeno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(selGenotypeBt, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(genotypeLabel)
+                    .addComponent(genotypeText, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(genotypeSelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(genotypeFormatLabel)
+                    .addComponent(genotypeFormatCBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(mapLabel)
+                    .addComponent(mapText, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(mapButton, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(8, 8, 8)
                 .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(fieldPheno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(selPhenotypeBt, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(panelPathsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(panelPathsLayout.createSequentialGroup()
-                    .addGap(15, 15, 15)
-                    .addComponent(fieldOutputDir, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap(71, Short.MAX_VALUE)))
         );
 
         panelFilesTitle.add(panelPaths, java.awt.BorderLayout.CENTER);
 
+        panelInputs.add(panelFilesTitle, java.awt.BorderLayout.NORTH);
+
+        panelOptions.setBorder(new javax.swing.border.MatteBorder(null));
+
         panelParametersTitle.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        panelParametersTitle.setPreferredSize(new java.awt.Dimension(352, 265));
         panelParametersTitle.setLayout(new java.awt.BorderLayout());
 
         jLabel1.setBackground(javax.swing.UIManager.getDefaults().getColor("Button.disabledToolBarBorderBackground"));
@@ -308,6 +372,8 @@ public class ViewInputs extends javax.swing.JPanel {
         panelParametersTitle.add(jLabel1, java.awt.BorderLayout.PAGE_START);
 
         panelParameters.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        panelParameters.setAlignmentY(1.5F);
+        panelParameters.setPreferredSize(new java.awt.Dimension(350, 250));
 
         jLabel8.setText("GWAS Model:");
 
@@ -320,6 +386,11 @@ public class ViewInputs extends javax.swing.JPanel {
         jLabel4.setText("Correction Method:");
 
         fieldCorrection.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Bonferroni", "FDR" }));
+        fieldCorrection.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fieldCorrectionActionPerformed(evt);
+            }
+        });
 
         jLabel5.setText("Number of Best SNPs:");
 
@@ -345,69 +416,60 @@ public class ViewInputs extends javax.swing.JPanel {
             panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelParametersLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(panelParametersLayout.createSequentialGroup()
-                        .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel8)
-                            .addComponent(jLabel3)
-                            .addComponent(labelPloidy))
-                        .addGap(28, 28, 28)
-                        .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(fieldModel, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(fieldSignificance)
-                            .addComponent(fieldPloidy, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                    .addGroup(panelParametersLayout.createSequentialGroup()
-                        .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelParametersLayout.createSequentialGroup()
-                                .addComponent(jLabel5)
-                                .addGap(5, 5, 5))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelParametersLayout.createSequentialGroup()
-                                .addComponent(jLabel6)
-                                .addGap(95, 95, 95))
-                            .addGroup(panelParametersLayout.createSequentialGroup()
-                                .addComponent(jLabel4)
-                                .addGap(22, 22, 22)))
-                        .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(fieldCorrection, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(fieldSNPs, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(fieldFiltering, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addContainerGap(74, Short.MAX_VALUE))
+                .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(labelPloidy)
+                    .addComponent(jLabel8)
+                    .addComponent(jLabel3)
+                    .addComponent(jLabel4)
+                    .addComponent(jLabel5)
+                    .addComponent(jLabel6))
+                .addGap(5, 5, 5)
+                .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(fieldPloidy, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(fieldModel, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(fieldSignificance)
+                    .addComponent(fieldCorrection, 0, 105, Short.MAX_VALUE)
+                    .addComponent(fieldSNPs, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(fieldFiltering, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(72, 72, 72))
         );
         panelParametersLayout.setVerticalGroup(
             panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelParametersLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(fieldPloidy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(fieldPloidy)
                     .addComponent(labelPloidy))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel8)
-                    .addComponent(fieldModel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(6, 6, 6)
+                    .addComponent(fieldModel))
+                .addGap(8, 8, 8)
                 .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel3)
-                    .addComponent(fieldSignificance, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(4, 4, 4)
+                    .addComponent(fieldSignificance))
+                .addGap(18, 18, 18)
                 .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel4)
-                    .addComponent(fieldCorrection, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(6, 6, 6)
+                    .addComponent(fieldCorrection))
+                .addGap(11, 11, 11)
                 .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(fieldSNPs, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(panelParametersLayout.createSequentialGroup()
-                        .addGap(4, 4, 4)
-                        .addComponent(jLabel5)))
+                    .addComponent(fieldSNPs)
+                    .addComponent(jLabel5))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(panelParametersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel6)
-                    .addComponent(fieldFiltering, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(fieldFiltering))
                 .addGap(34, 34, 34))
         );
 
         panelParametersTitle.add(panelParameters, java.awt.BorderLayout.CENTER);
 
+        panelOptions.add(panelParametersTitle);
+        panelOptions.add(filler1);
+
         panelFiltersTitle.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        panelFiltersTitle.setPreferredSize(new java.awt.Dimension(352, 265));
         panelFiltersTitle.setLayout(new java.awt.BorderLayout());
 
         panelFilters.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
@@ -421,11 +483,6 @@ public class ViewInputs extends javax.swing.JPanel {
 
         fieldFilterHWE.setText("1e-10");
         fieldFilterHWE.setPreferredSize(new java.awt.Dimension(40, 15));
-        fieldFilterHWE.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                fieldFilterHWEActionPerformed(evt);
-            }
-        });
 
         fieldFilterMAF.setText("0.01");
         fieldFilterMAF.setPreferredSize(new java.awt.Dimension(25, 15));
@@ -500,31 +557,9 @@ public class ViewInputs extends javax.swing.JPanel {
         jLabel18.setOpaque(true);
         panelFiltersTitle.add(jLabel18, java.awt.BorderLayout.PAGE_START);
 
-        javax.swing.GroupLayout panelInputsLayout = new javax.swing.GroupLayout(panelInputs);
-        panelInputs.setLayout(panelInputsLayout);
-        panelInputsLayout.setHorizontalGroup(
-            panelInputsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(panelInputsLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(panelInputsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(panelFilesTitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(panelInputsLayout.createSequentialGroup()
-                        .addComponent(panelParametersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 352, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(panelFiltersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(17, Short.MAX_VALUE))
-        );
-        panelInputsLayout.setVerticalGroup(
-            panelInputsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(panelInputsLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(panelFilesTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(panelInputsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(panelFiltersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 234, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(panelParametersTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-                .addGap(218, 218, 218))
-        );
+        panelOptions.add(panelFiltersTitle);
+
+        panelInputs.add(panelOptions, java.awt.BorderLayout.WEST);
 
         add(panelInputs, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
@@ -558,9 +593,9 @@ public class ViewInputs extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_selPhenotypeBtActionPerformed
 
-    private void selGenotypeBtActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selGenotypeBtActionPerformed
+    private void genotypeSelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_genotypeSelButtonActionPerformed
         //Handle open button action.
-        if (evt.getSource() == selGenotypeBt) {
+        if (evt.getSource() == genotypeSelButton) {
             fc.setCurrentDirectory(getLastDir());
             fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
             int returnVal = fc.showOpenDialog(ViewInputs.this);
@@ -568,11 +603,11 @@ public class ViewInputs extends javax.swing.JPanel {
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
                 //This is where a real application would open the file.
-                fieldGeno.setText(file.getAbsolutePath());
+                genotypeText.setText(file.getAbsolutePath());
                 prefs.put(LAST_USED_FOLDER, fc.getSelectedFile().getParent());
             }
         }        // TODO add your handling code here:
-    }//GEN-LAST:event_selGenotypeBtActionPerformed
+    }//GEN-LAST:event_genotypeSelButtonActionPerformed
 
     private void fieldFilteringActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldFilteringActionPerformed
         boolean flag = false;
@@ -587,9 +622,19 @@ public class ViewInputs extends javax.swing.JPanel {
             c.setEnabled(flag);
     }//GEN-LAST:event_fieldFilteringActionPerformed
 
-    private void fieldFilterHWEActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldFilterHWEActionPerformed
+    private void mapButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mapButtonActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_fieldFilterHWEActionPerformed
+    }//GEN-LAST:event_mapButtonActionPerformed
+
+    private void genotypeFormatCBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_genotypeFormatCBoxActionPerformed
+        String selection = genotypeFormatCBox.getSelectedItem().toString();
+        System.out.println (selection);
+        controller.onGenotypeFormat(selection);
+    }//GEN-LAST:event_genotypeFormatCBoxActionPerformed
+
+    private void fieldCorrectionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fieldCorrectionActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_fieldCorrectionActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -599,16 +644,19 @@ public class ViewInputs extends javax.swing.JPanel {
     private javax.swing.JTextField fieldFilterMAF;
     private javax.swing.JTextField fieldFilterMIND;
     private javax.swing.JComboBox<String> fieldFiltering;
-    private javax.swing.JTextField fieldGeno;
     private javax.swing.JComboBox<String> fieldModel;
     private javax.swing.JTextField fieldOutputDir;
     private javax.swing.JTextField fieldPheno;
     private javax.swing.JComboBox<String> fieldPloidy;
     private javax.swing.JComboBox<String> fieldSNPs;
     private javax.swing.JTextField fieldSignificance;
+    private javax.swing.Box.Filler filler1;
+    private javax.swing.JComboBox<String> genotypeFormatCBox;
+    private javax.swing.JLabel genotypeFormatLabel;
+    private javax.swing.JLabel genotypeLabel;
+    private javax.swing.JButton genotypeSelButton;
+    private javax.swing.JTextField genotypeText;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
@@ -620,16 +668,20 @@ public class ViewInputs extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel labelInputOutput;
     private javax.swing.JLabel labelOutputDir;
     private javax.swing.JLabel labelPloidy;
+    private javax.swing.JButton mapButton;
+    private javax.swing.JLabel mapLabel;
+    private javax.swing.JTextField mapText;
     private javax.swing.JPanel panelFilesTitle;
     private javax.swing.JPanel panelFilters;
     private javax.swing.JPanel panelFiltersTitle;
     private javax.swing.JPanel panelInputs;
+    private javax.swing.JPanel panelOptions;
     private javax.swing.JPanel panelParameters;
     private javax.swing.JPanel panelParametersTitle;
     private javax.swing.JPanel panelPaths;
-    private javax.swing.JButton selGenotypeBt;
     private javax.swing.JButton selOutputDir;
     private javax.swing.JButton selPhenotypeBt;
     // End of variables declaration//GEN-END:variables

@@ -5,12 +5,15 @@
  */
 package jmultigwas;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.swing.SwingWorker;
 
 /**
@@ -48,35 +51,37 @@ public class RunAppWorker extends SwingWorker<Void, String> {
         
         processBuilder.command("bash", "-c", commandString, outputPath.toString());
         System.out.println (">>> Command: " + processBuilder.command());
+        
         try {
-            Process process = processBuilder.start();
-            InputStreamReader isr = new InputStreamReader(process.getInputStream());
-            int c;
-            while ((c = isr.read()) >= 0) {
-                controller.sendToOutputs((char) c);
-                System.out.print((char) c);
-                //System.out.flush();
-            }
-            System.out.println("End of execution");
-            int exitVal = process.waitFor();
-            if (exitVal == 0) {
-                controller.sendToOutputs("End of execution   ");
-                
-                controller.sendToOutputs("Success!");
-                System.out.println("Success!");
-            } else {
-                System.out.println("Abnormal!");
-                System.exit(1);
-            }
-            controller.onEndOfExecution();
+            Process p = processBuilder.start();
 
+            try {
+                BufferedInputStream bis = new BufferedInputStream(p.getInputStream());
+                BufferedReader r = new BufferedReader(
+                        new InputStreamReader(bis));
+
+                String line;
+                while ((line = r.readLine()) != null) {
+                    System.out.println(line);
+                    controller.writeLine (line,"");
+                    if (line.contains("Moving")) {
+                        //keywordFound = true;
+                        break;
+                    }
+                }
+            } finally {
+                p.getInputStream().close();
+            } 
         } catch (IOException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
-            //} catch (InterruptedException e) {
-            //  e.printStackTrace();
         }
+        System.out.println ("END");
+        controller.onEndOfExecution();
+        
         return null;
     }
+    
 
     @Override
     protected void process(List<String> chunks) {
