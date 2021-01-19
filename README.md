@@ -42,18 +42,17 @@ The MultiGWAS tool currently runs on Linux systems (tested on Ubuntu Linux 18.04
 ```
   - R 3.6 or higher. If not installed see https://cran.r-project.org/bin/linux/ubuntu/README.html or Open a Linux console and enter the following instructions for Ubuntu 18.04 (bionic):
 ```
-    sudo apt install add-apt-key software-properties-common git
-    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB6517
-    sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'16619E084DAB9
-    sudo apt update
-    sudo apt install r-base
+	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+	sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'
+	sudo apt-get update
+	sudo apt-get install r-base-dev
 ```
-  - Oracle Java JRE 8.x or higher. If not installed see https://computingforgeeks.com/install-oracle-java-openjdk-14-on-ubuntu-debian-linux/ or Open a Linux console (or terminal) and enter the following instructions for Ubuntu 18.04 (bionic):
+  - Oracle Java JRE 8.x or higher. If not installed see https://ubuntuhandbook.org/index.php/2020/09/install-oracle-java-15-ubuntu-20-04-18-04-16-04/ or Open a Linux console (or terminal) and enter the following instructions for Ubuntu 18.04 (bionic):
 ```
-   sudo add-apt-repository ppa:linuxuprising/java
-   sudo apt update
-   sudo apt install oracle-java14-installer
-   sudo apt install oracle-java14-set-default
+	sudo add-apt-repository ppa:linuxuprising/java
+	sudo apt update
+	sudo apt install oracle-java15-installer
+	java -version
 ``` 
 
 ### Install MultiGWAS tool
