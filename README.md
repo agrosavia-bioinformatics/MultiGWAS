@@ -19,53 +19,74 @@
       * [Number of SNPs in Manhattan and QQ plots](#number-of-snps-in-manhattan-and-qq-plots)
       * [Correction for multiple testing](#correction-for-multiple-testing)
 
-# Installation
-We describe here the [MultiGWAS](https://github.com/agrosavia-bionformatics/multiGWAS) installation that contains the file sources and binaries to run the MultiGWAS tool. It includes:
-  - MultiGWAS tool sources (R code, Java application,  and binary bash scripts)
-  - MultiGWAS precompiled R libraries for Linux systems (tested on Ubuntu 18.04) 
-  - Binaries and Java classes for the four GWAS packages  GWASpoly, SHEsis, TASSEL, and PLINK (r1.9 and r2.0)
-  
-## General steps to install multiGWAS on a Linux system
-  1. Install pandoc markup converter, if not installed. 
-  2. Install git tool to clone github repository, if not installed.
-  3. Install Oracle Java runtime, if not installed.
-  4. Install R 3.6, if not installed. 
-  5. Clone the multiGWAS repository
-  6. Execute the multiGWAS installer:
+# Installation of MultiGWAS
+MultiGWAS is mainly implemented in R system with a graphical user interface implemented in Java. The installation requires both the source code of MultiGWAS and some pre-installed external software:  
+  - R system (>=3.6)
+  - Oracle java (>=8.0)
+  - Some R libraries 
+  - Some linux libraries   
 
-## Specific instructions to install multiGWAS on a Linux Ubuntu
-### Install external software
-The MultiGWAS tool currently runs on Linux systems (tested on Ubuntu Linux 18.04 LTS, x86_64 GNU / Linux), and requires the following software to be installed:
-  - Install git tool and pandoc markup converter: 
-```
-    sudo apt install git pandoc
-```
-  - R 3.6 or higher. If not installed see https://cran.r-project.org/bin/linux/ubuntu/README.html or Open a Linux console and enter the following instructions for Ubuntu 18.04 (bionic):
-```
-	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-	sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'
-	sudo apt-get update
-	sudo apt-get install r-base-dev
-```
-  - Oracle Java JRE 8.x or higher. If not installed see https://ubuntuhandbook.org/index.php/2020/09/install-oracle-java-15-ubuntu-20-04-18-04-16-04/ or Open a Linux console (or terminal) and enter the following instructions for Ubuntu 18.04 (bionic):
-```
-	sudo add-apt-repository ppa:linuxuprising/java
-	sudo apt update
-	sudo apt install oracle-java15-installer
-	java -version
-``` 
 
-### Install MultiGWAS tool
-Open a Linux console (or terminal) and enter the following instructions:
-```
-# 1. Clone the MultiGWAS repository:
-    git clone https://github.com/agrosavia-bioinformatics/multiGWAS.git
-# 2. Change to the multiGWAS dir:
-    cd multiGWAS
-# 3. Execute the installer:
-    . INSTALL.SH         # dot space INSTALL.SH
-# 4. The MultiGWAS tool is ready to use.
-```
+Therefore, we provide three ways to install and run MultiGWAS:
+  - **Manual installation (prefered):** external software must be installed manually. 
+  - **Full installation:** external software is compiled and preinstalled for Ubuntu 18.04 and Ubuntu 20.10.
+  - **Virtual machine:** download a Linux virtual machine with a ready-to-use MultiGWAS.
+
+## Manual installation steps:
+1.  Open a linux terminal, clone the MultiGWAS repository, change to the multiGWAS folder, and run the install script:
+
+	```
+	git clone https://github.com/agrosavia-bioinformatics/multiGWAS.git
+	cd multiGWAS
+	sh INSTALL.sh 
+	```
+2. The previous script checks if the required external software is installed. Otherwise, it shows what software must be installed and shows the instructions to install it.
+	- For linux dependencies on either ***Ubuntu 18.xx or Ubuntu 20.xx***, run the bash script **install-LinuxDeps.sh**:
+	```
+	sh install/install-LinuxDeps.sh
+	```
+
+	- For R 3.6 on ***Ubuntu 18.xx***, run the bash script **install-R36.sh**:
+	```
+	sh install/install-R36.sh
+	```
+
+	- For R 4.0 on ***Ubuntu 20.xx***, run the bash script **install-R40.sh**:
+	```
+	sh install/install-R40.sh
+	```
+
+	- For Oracle Java 15 on either ***Ubuntu 18.xx or Ubuntu 20.xx***, run the bash script **install-Java15.sh**:
+	```
+	sh install/install-Java15.sh
+
+	```
+
+	- For the required R libraries on either  ***Ubuntu 18.xx or Ubuntu 20.xx***, run the R script ***install-Rlibs.R***
+	```
+	Rscript install/install-Rlibs.R
+	```
+
+## Full installation steps:
+We provide two ready-to-use full installations: one for Ubuntu 18.xx and another for Ubuntu 20.xx.  For both installations, open a linux terminal, clone the MultiGWAS repository, change to the multiGWAS folder, and run the install script:
+
+### Ubuntu 18.xx
+  ```
+	git clone https://github.com/agrosavia-bioinformatics/multiGWAS-ubuntu18.git
+	cd multiGWAS-ubuntu18
+	sh INSTALL.sh 
+  ```
+
+### Ubuntu 20.xx
+  ```
+	git clone https://github.com/agrosavia-bioinformatics/multiGWAS-ubuntu20.git
+	cd multiGWAS-ubuntu20
+	sh INSTALL.sh 
+  ```
+
+
+## Virtual machine installation steps:
+Download and run the ready-to-use Linux virtual machine created with VirtualBox ([MultiGWAS-vm](https://github.com/agrosavia-bioinfo/multiGWAS-vm)).
 
 # Executing the MultiGWAS tool
 MultiGWAS can be executed by either a command line interface (CLI) developed in R or a graphical user interface (GUI) developed in Java.
